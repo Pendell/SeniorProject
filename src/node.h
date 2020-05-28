@@ -8,25 +8,25 @@
 #include <vector>
 
 
-// Statement Node
- class StmtNode;
-
-// Expression Node
- class ExprNode;
 
 // Variable Declarations
- class VarDeclNode;
+class VarDeclNode;
 
 
 // Define the base 'node' objects we will derive everything else from...
 // Everything is empty right now because all nodes will be some form of
-// derivative of these nodes. I think I'll need the codeGen in here when
-// I get llvm working.
+// derivative of these nodes. I think I'll need the codeGen stuff in here
+// when I get llvm working.
 class ASTNode {};
-class StmtNode : public ASTNode {};
+class StmtNode : public ASTNode {
+    
+};
+
 class ExprNode : public ASTNode {
   public:
-    void printVal() {}
+    int getVal() {
+        return 0;
+    }
 };
 
 
@@ -91,8 +91,8 @@ class IntegerNode : public ExprNode {
     }
     
     // Print out the value for debugging purposes.
-    int printVal(){
-        std::cout << value;
+    int getVal(){
+        return value;
     
     }
 };
@@ -193,7 +193,7 @@ class VarDeclNode : public StmtNode {
         std::cout << "VarDeclNode created(Init)!" << std::endl;
         std::cout << "Type: " << *type << std::endl;
         std::cout << "Name: " << *name << std::endl;
-        assignExpr->printVal();
+        std::cout << "Value: " << value->getVal() << std::endl;
         std::cout << std::endl << std::endl;
                                
     }

@@ -78,9 +78,10 @@
 
 %token<token>   VOID "void"  CHAR "char" 
 %token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
-%token          LPAREN "(" RPAREN ")" LBRACKET "{" RBRACKET "}" RETURN "return"
+%token          LPAREN "(" RPAREN ")" LBRACKET "{" RBRACKET "}"
+%token          RETURN "return"
 %token          COLON ":" SEMICOLON ";" COMMA ","
-%token          EQUAL "="   
+%token<token>   EQUAL "="   
 %token<token>   PLUS "+"
 
 // Precedences
@@ -90,20 +91,30 @@
 %start program
 
 /* Extra notes about tokens so I can reference the terminals/tokens by ID#
- *
- * $end (0)
+ * This is copied directly from the parser.output file. Putting it here
+ * in case I need to reference things directly. I haven't needed to so far,
+ * and this list might be outdated, but an updated list can be found in the
+ * parser.output file.
+ *   
+ * $end (0) 0
  * error (256)
- * VOID (258)
- * INT (259) 
- * CHAR (260) 
- * IDENTIFIER (261)
- * INTCONSTANT (262)
- * "=" (263) 
- * "(" (264) 
- * ")" (265) 
- * "{" (266) 
- * "}" (267) 
- * RETURN (268) 
+ * "void" (258)
+ * "char" (259) 
+ * ID (260) 
+ * NUMCONST (261) 
+ * CHARCONST (262) 
+ * STRINGCONST (263) 
+ * "int" (264)
+ * "(" (265)
+ * ")" (266) 
+ * "{" (267)
+ * "}" (268) 
+ * "return" (269) 
+ * ":" (270)
+ * ";" (271) 
+ * "," (272)
+ * "=" (273) 
+ * "+" (274)
  *
  */
 
@@ -127,8 +138,8 @@ funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" { programBlock = $6; }
 ; 
 
 
-stmtList:       stmt ";" stmtList { /* $3->statements.push_back($<stmt>1) */; }
-|               stmt { /* $$ = new Block(); $$->statements.push_back($<stmt>1) */; }
+stmtList:       stmt ";" stmtList { /* $3->statements.push_back($<stmt>1); */}
+|               stmt {  $$ = new Block(); $$->statements.push_back($<stmt>1) ; }
 |               %empty {}
 ;
 
@@ -156,7 +167,7 @@ exprStmt:       ";" {}
 |               expr {}
 ;
 
-expr:           constant {}
+expr:           constant
 ;
  
 constant:       NUMCONST { $$ = new IntegerNode(atoi($1->c_str())); delete $1; }
@@ -176,6 +187,7 @@ typeSpecifier:  "int" { $$ = new std::string("int"); }
 * line over to the C++ file that Bison generates. I'm using the epilogue to  *
 * create the main function that my parser will use, as well as the definition*
 * of yyerror, so that I can handle errors in a way that's meaningful to me.  *
+* It's not meaningful to me yet, but it will be in the future. Probably.     *
 *****************************************************************************/
 int main(int argc, char** argv){
     yydebug = 1;
