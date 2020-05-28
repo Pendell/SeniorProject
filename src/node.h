@@ -24,7 +24,10 @@
 // I get llvm working.
 class ASTNode {};
 class StmtNode : public ASTNode {};
-class ExprNode : public ASTNode {};
+class ExprNode : public ASTNode {
+  public:
+    void printVal() {}
+};
 
 
 // Typedef the lists, because I'm lazy
@@ -46,10 +49,12 @@ class Block : public ExprNode {
     StmtList statements;
     
     Block() {
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl;
         std::cout << "Block created!" << std::endl;
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl;
     }
+    
+    
 };
 
 /* IdNode
@@ -166,25 +171,36 @@ class ExpressionStatement : public StmtNode {
 /* VariableDeclarationNode
  * for creating nodes containing variable definitions
  */
-class VariableDeclarationNode : public StmtNode {
+class VarDeclNode : public StmtNode {
   public:
-    IdNode& type;
-    IdNode& name;
-    ExprNode* assignExpr;
+  
+    const std::string* type;
+    const std::string* name;
     
-    VariableDeclarationNode(IdNode& ty, IdNode& na) : type(ty), name(na) {}
+    ExprNode* value;
     
-    VariableDeclarationNode(IdNode& ty, IdNode& na, ExprNode* as) :
-                            type(ty), name(na), assignExpr(as) {
+    VarDeclNode(const std::string* ty, const std::string* na) : type(ty), name(na) {
         std::cout << std::endl << std::endl;
-        std::cout << "VariableDeclaration Node created!" << std::endl;
+        std::cout << "VarDeclNode created(No init)!" << std::endl;
+        std::cout << "Type: " << type << std::endl;
+        std::cout << "Name: " << name << std::endl;
+        std::cout << std::endl << std::endl;
+    }
+    
+    VarDeclNode(const std::string* ty, const std::string* na, ExprNode* va) :
+                            type(ty), name(na), value(va) {
+        std::cout << std::endl << std::endl;
+        std::cout << "VarDeclNode created(Init)!" << std::endl;
+        std::cout << "Type: " << *type << std::endl;
+        std::cout << "Name: " << *name << std::endl;
+        assignExpr->printVal();
         std::cout << std::endl << std::endl;
                                
     }
 
 };
 
-typedef std::vector<VariableDeclarationNode*> VarList;
+typedef std::vector<VarDeclNode*> VarList;
 
 /* FunctionDeclarationNode
  * for creating nodes containing functions

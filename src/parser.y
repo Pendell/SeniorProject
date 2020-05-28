@@ -71,12 +71,13 @@
 * section. Example using ")" instead of typing "LPAREN" improves readabilit  *
 * of the grammar section.                                                    *  
 *****************************************************************************/
-%type<expr>     expr 
-%type<stmt>     stmt returnStmt exprStmt
-%type<block>    program funcDeclList
+%type<expr>     expr constant
+%type<stmt>     stmt returnStmt exprStmt varDecl funcDecl
+%type<block>    program funcDeclList stmtList 
+%type<string>   typeSpecifier
 
-%token<token>   VOID "void" INT "int" CHAR "char" 
-%token<string>  ID NUMCONST CHARCONST STRINGCONST
+%token<token>   VOID "void"  CHAR "char" 
+%token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
 %token          LPAREN "(" RPAREN ")" LBRACKET "{" RBRACKET "}" RETURN "return"
 %token          COLON ":" SEMICOLON ";" COMMA ","
 %token          EQUAL "="   
@@ -85,6 +86,8 @@
 // Precedences
 %left EQUAL
 %left PLUS
+
+%start program
 
 /* Extra notes about tokens so I can reference the terminals/tokens by ID#
  *
@@ -117,30 +120,33 @@
 *****************************************************************************/
 %% 
 
-program:        funcDeclList {}
+program:        funcDecl
 ;
 
-funcDeclList:   funcDecl funcDeclList {}
+funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" { programBlock = $6; }
+; 
+
+
+stmtList:       stmt ";" stmtList { /* $3->statements.push_back($<stmt>1) */; }
+|               stmt { /* $$ = new Block(); $$->statements.push_back($<stmt>1) */; }
 |               %empty {}
 ;
 
-funcDecl:       typeSpecifier ID "(" params ")" "{" stmtList "}"
+stmt:           varDecl { }
+|               funcDecl { }
+|               returnStmt
+|               exprStmt
+;
+
+funcDeclList:   funcDecl funcDeclList { }
+|               %empty {}
 ;
 
 params:         %empty
 ;
 
-stmtList:       stmt ";" stmtList
-|               %empty
-;
-
-stmt:           varDecl {}
-|               returnStmt
-|               exprStmt
-;
-
-varDecl:        typeSpecifier ID
-|               typeSpecifier ID "=" expr
+varDecl:        typeSpecifier ID "=" expr { $$ = new VarDeclNode($1, $2, $4); }
+|               typeSpecifier ID { $$ = new VarDeclNode($1, $2); }
 ;
 
 returnStmt:     "return" expr {}
@@ -152,14 +158,14 @@ exprStmt:       ";" {}
 
 expr:           constant {}
 ;
-
-constant:       NUMCONST
+ 
+constant:       NUMCONST { $$ = new IntegerNode(atoi($1->c_str())); delete $1; }
 |               CHARCONST
 |               STRINGCONST
 ;
 
-typeSpecifier:  "int"
-|               "char"
+typeSpecifier:  "int" { $$ = new std::string("int"); }
+|               "char" { $$ = new std::string("char"); }
 ;
 
 
