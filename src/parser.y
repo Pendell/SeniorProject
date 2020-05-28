@@ -3,6 +3,7 @@
  * everything I need lined up, but we'll see how it goes. */
 
 /* THIS LINE IS TO TEST SOMETHING IN GIT */
+/* Second test line for git, should have ssh working now */
 
 /* Prologue ******************************************************************
 * The prologue section is where we do basic, C-style includes, defines       *
