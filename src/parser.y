@@ -116,11 +116,11 @@
 *****************************************************************************/
 %% 
 
-program:        funcDeclList 
+program:        funcDeclList {}
 ;
 
-funcDeclList:   funcDecl funcDeclList
-|               %empty
+funcDeclList:   funcDecl funcDeclList {}
+|               %empty {}
 ;
 
 funcDecl:       typeSpecifier ID "(" params ")" "{" stmtList "}"
@@ -133,7 +133,7 @@ stmtList:       stmt ";" stmtList
 |               %empty
 ;
 
-stmt:           varDecl
+stmt:           varDecl {}
 |               returnStmt
 |               exprStmt
 ;
@@ -142,14 +142,14 @@ varDecl:        typeSpecifier ID
 |               typeSpecifier ID "=" expr
 ;
 
-returnStmt:     "return" expr
+returnStmt:     "return" expr {}
 ;
 
-exprStmt:       ";"
-|               expr
+exprStmt:       ";" {}
+|               expr {}
 ;
 
-expr:           constant
+expr:           constant {}
 ;
 
 constant:       NUMCONST
