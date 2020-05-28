@@ -24,9 +24,7 @@ class StmtNode : public ASTNode {
 
 class ExprNode : public ASTNode {
   public:
-    int getVal() {
-        return 0;
-    }
+    virtual int getVal() { }
 };
 
 
@@ -97,17 +95,7 @@ class IntegerNode : public ExprNode {
     }
 };
 
-/* ReturnNode
- * for return expressions
- */
-class ReturnNode : public ExprNode {
-  public:
-    ExprNode* retVal;
-    
-    ReturnNode(ExprNode) { // return null for now
-        retVal = NULL;
-    }
-};
+
 
 /* BinaryOpNode
  * A node created for binary operations (+, -, *, /, etc...)
@@ -168,6 +156,21 @@ class ExpressionStatement : public StmtNode {
     
 };
 
+/* ReturnNode
+ * for returning expressions
+ */
+class ReturnNode : public StmtNode {
+  public:
+    ExprNode* retVal;
+    
+    ReturnNode(ExprNode* rv) : retVal(rv) {
+        std::cout << std::endl << std::endl;
+        std::cout << "ReturnNode created!" << std::endl;
+        std::cout << "Return Value: " << retVal->getVal() << std::endl;
+        std::cout << std::endl << std::endl;
+    }
+};
+
 /* VariableDeclarationNode
  * for creating nodes containing variable definitions
  */
@@ -182,8 +185,8 @@ class VarDeclNode : public StmtNode {
     VarDeclNode(const std::string* ty, const std::string* na) : type(ty), name(na) {
         std::cout << std::endl << std::endl;
         std::cout << "VarDeclNode created(No init)!" << std::endl;
-        std::cout << "Type: " << type << std::endl;
-        std::cout << "Name: " << name << std::endl;
+        std::cout << "Type: " << *type << std::endl;
+        std::cout << "Name: " << *name << std::endl;
         std::cout << std::endl << std::endl;
     }
     
@@ -205,15 +208,20 @@ typedef std::vector<VarDeclNode*> VarList;
 /* FunctionDeclarationNode
  * for creating nodes containing functions
  */
-class FunctionDeclNode : public StmtNode {
+class FuncDeclNode : public StmtNode {
   public:
-    std::string type;   // return type
-    std::string name;   // name of function
-    VarList args;   // arguments passed
-    StmtList stmtList;   // statements to be executed
+    const std::string* type;   // return type
+    const std::string* name;   // name of function
+    //VarList args;   // arguments passed
+    Block* statements;   // statements to be executed
     
-    FunctionDeclNode(std::string ty, std::string na, VarList ar, StmtList stl) :
-                            type(ty), name(na), args(ar), stmtList(stl) {
+    FuncDeclNode(const std::string* ty, const std::string* na, Block* stl) :
+                            type(ty), name(na), statements(stl) {
+                                std::cout << std::endl << std::endl;
+        std::cout << "FuncDeclNode created!" << std::endl;
+        std::cout << "Type: " << *type << std::endl;
+        std::cout << "Name: " << *name << std::endl;
+        std::cout << std::endl << std::endl;
     }
         
 };

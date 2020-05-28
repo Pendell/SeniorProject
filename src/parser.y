@@ -56,7 +56,6 @@
 }
 
 
-
 /* Tokens & Types ************************************************************
 * This is how we define the tokens to be used between Bison and Flex.        *
 * the '%token' tells bison we're defining a token.                           *
@@ -131,36 +130,35 @@
 *****************************************************************************/
 %% 
 
-program:        funcDecl
+program:        stmtList { programBlock = $1; }
 ;
 
-funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" { programBlock = $6; }
-; 
-
-
-stmtList:       stmt ";" stmtList { /* $3->statements.push_back($<stmt>1); */}
-|               stmt {  $$ = new Block(); $$->statements.push_back($<stmt>1) ; }
+stmtList:       stmt stmtList { /* $3->statements.push_back($<stmt>1); */}
+|               stmt { $$ = new Block(); $$->statements.push_back($<stmt>1); }
 |               %empty {}
 ;
 
-stmt:           varDecl { }
-|               funcDecl { }
+stmt:           varDecl 
+|               funcDecl
 |               returnStmt
 |               exprStmt
 ;
 
-funcDeclList:   funcDecl funcDeclList { }
-|               %empty {}
+funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
+                { 
+                    $$ = new FuncDeclNode($1, $2, $6); 
+                }
 ;
+
 
 params:         %empty
 ;
 
-varDecl:        typeSpecifier ID "=" expr { $$ = new VarDeclNode($1, $2, $4); }
-|               typeSpecifier ID { $$ = new VarDeclNode($1, $2); }
+varDecl:        typeSpecifier ID "=" expr ";" { $$ = new VarDeclNode($1, $2, $4); }
+|               typeSpecifier ID ";" { $$ = new VarDeclNode($1, $2); }
 ;
 
-returnStmt:     "return" expr {}
+returnStmt:     "return" expr ";" { $$ = new ReturnNode($2); }
 ;
 
 exprStmt:       ";" {}
