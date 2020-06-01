@@ -1,4 +1,4 @@
-compiler: parser.hpp parser.cpp tokens.cpp
+compiler: parser.hpp parser.cpp tokens.cpp 
 	g++ node.h
 	g++ parser.cpp tokens.cpp -lfl -o compiler -I ~/llvm-project/llvm/include/  -I ~/llvm-project/build/include
 

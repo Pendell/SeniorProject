@@ -16,6 +16,7 @@
     #include <iostream>
     #include <string>
     #include <stdio.h>
+    #include <list>    // For the symbol table list
     
     void yyerror(const char* e);
     
@@ -27,6 +28,13 @@
 
 
     Block* programBlock; /* the root of the created AST */
+    
+    SymbolTable* CurrSymTable;
+    
+    std::list<SymbolTable*>* SymList; // A list of Symbol Tables
+    
+    bool CheckAndAdd(SymbolTable* SymTable, std::string name, std::string type);
+    
 %} 
 
 
@@ -130,35 +138,73 @@
 *****************************************************************************/
 %% 
 
-program:        stmtList { programBlock = $1; }
+program:        funcDeclList 
+                { 
+                    programBlock = $1;
+                    
+                    // Create the Global Symbol Table
+                    // Unused for now since the grammar doesn't allow
+                    // global variables for the time being, but it's there
+                    SymbolTable* GlobalST = new SymbolTable();
+                    
+                    
+                    // Push the symbol table onto the list.
+                    SymList->push_front(GlobalST);
+                    printf("New symbol table created\n");
+                    printf("Symbol Table added to the SymList\n");
+                }
+;
+
+funcDeclList:   funcDecl, funcDeclList
+|               funcDecl
+;
+
+funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
+                {   
+                    printf("Before adding SymTable: %d", CurrSymTable->size());
+                    $$ = new FuncDeclNode($1, $2, $6, CurrSymTable);
+                }
 ;
 
 stmtList:       stmt stmtList { /* $3->statements.push_back($<stmt>1); */}
 |               stmt { $$ = new Block(); $$->statements.push_back($<stmt>1); }
-|               %empty {}
+|               %empty { }
 ;
 
 stmt:           varDecl 
-|               funcDecl
 |               returnStmt
 |               exprStmt
 ;
 
-funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
-                { 
-                    $$ = new FuncDeclNode($1, $2, $6); 
-                }
-;
-
-
 params:         %empty
 ;
 
-varDecl:        typeSpecifier ID "=" expr ";" { $$ = new VarDeclNode($1, $2, $4); }
+varDecl:        typeSpecifier ID "=" expr ";" 
+                {   
+                    std::string name = *$2;
+                    std::cout << "THE NAME IS: " << name << std::endl;
+                    std::string type = *$1;
+                    if(CheckAndAdd(CurrSymTable, name, type)){
+                        
+                        // Variable Node Construction
+                        $$ = new VarDeclNode($1, $2, $4);
+                        
+                    } else {
+                        printf("\nSo the variable was already declared...\n");
+                        char* s;
+                        sprintf(s, "Redefinition of %s\n", name.c_str());
+                        yyerror(s);
+                        YYABORT;
+                    }
+                    
+                }
 |               typeSpecifier ID ";" { $$ = new VarDeclNode($1, $2); }
 ;
 
-returnStmt:     "return" expr ";" { $$ = new ReturnNode($2); }
+returnStmt:     "return" expr ";" 
+                { 
+                    $$ = new ReturnNode($2);
+                }
 ;
 
 exprStmt:       ";" {}
@@ -188,17 +234,51 @@ typeSpecifier:  "int" { $$ = new std::string("int"); }
 * It's not meaningful to me yet, but it will be in the future. Probably.     *
 *****************************************************************************/
 int main(int argc, char** argv){
+    
+    
     yydebug = 1;
+    
     // Open the file, read if good
     FILE* f = fopen(argv[1], "r");
     if(!f)  printf("Error: Bad Input\n");
-    else {
+    
+    
+    else { // We're lexing/parsing the file now
+    
+        
         yyin = f;
+        CurrSymTable = new SymbolTable();
+        SymList = new std::list<SymbolTable*>();
+        
         yyparse();
         fclose(yyin);
+        
+        
     }
 }
 
 void yyerror(const char* s) {
     printf("Help! Error! Help! --> %s\n", s);
 }
+
+bool CheckAndAdd(SymbolTable* SymTable, std::string name, std::string type){
+    
+    // Check to see if the symbol already exists in the symbol table 
+    if(SymTable->count(name) != 0){
+        
+        // The symbol already exists
+        return false;
+        
+    } else {
+        
+        std::cout << std::endl;
+        std::cout << "Inserting... " << name << std::endl;
+        std::cout << "Of type... " << type << std::endl;
+        printf("\nBefore insertion, count = %d\n", SymTable->count(name));
+        SymTable->insert({name, type});
+        printf("\nAfter insertion, count = %d\n", SymTable->count(name));
+        printf("SymbolTable Size: %d\n", SymTable->size());
+        printf("Added some stuff to the symbol table\n\n");
+        return true;
+    }
+};

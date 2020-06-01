@@ -4,8 +4,9 @@
  * Senior Project Advisor: Dr. Ladd
  */
 
-#include <iostream>
-#include <vector>
+#include <iostream> 
+#include <vector>   // list construction
+#include <map>      // map construction (for symbol table)
 
 
 
@@ -28,13 +29,14 @@ class ExprNode : public ASTNode {
 };
 
 
-// Typedef the lists, because I'm lazy
+// Typedef the lists and tables, because I'm lazy
 typedef std::vector<StmtNode*> StmtList;
 typedef std::vector<ExprNode*> ExprList;
 
 
-/****************************** EXPRESSIONS **********************************/
+typedef std::map<std::string, std::string> SymbolTable;
 
+/****************************** EXPRESSIONS **********************************/
 
 /* Block
  * This is basically a collection of statements; so there's only one entry
@@ -54,25 +56,6 @@ class Block : public ExprNode {
     
     
 };
-
-/* IdNode
- * This node is for creating and storing names and identifiers
- */
-class IdNode : public ExprNode {
-  public:
-    std::string name;
-    
-    /*IdNode(std::string& na) : name(na) {
-        std::cout << "ID Node Created! The ID: " << name << std::endl;
-    }*/
-    
-    IdNode(std::string& na) : name(na) {
-        std::cout << std::endl << std::endl;
-        std::cout << "ID Node Created! The ID: " << name << std::endl;
-        std::cout << std::endl << std::endl;
-    }
-};
-
 
 /* IntegerNode
  * for IntegerConstants
@@ -122,10 +105,10 @@ class BinaryOpNode : public ExprNode {
 class FunctionCallNode : public ExprNode {
   public:
   
-    IdNode& id;     // Name of function being called
+    const std::string* name;  // Name of function being called
     ExprList args;  // Parameters passed to the function
     
-    FunctionCallNode(IdNode& i, ExprList& ar) : id(i), args(ar) {
+    FunctionCallNode(const std::string* na, ExprList& ar) : name(na), args(ar) {
         std::cout << std::endl << std::endl;
         std::cout << "Creating a MethodCallNode!" << std::endl;
         std::cout << "Though implementation not quite finished" << std::endl;
@@ -203,6 +186,7 @@ class VarDeclNode : public StmtNode {
 
 };
 
+// I think I'm going to use this for arguments, not sure yet.
 typedef std::vector<VarDeclNode*> VarList;
 
 /* FunctionDeclarationNode
@@ -215,8 +199,14 @@ class FuncDeclNode : public StmtNode {
     //VarList args;   // arguments passed
     Block* statements;   // statements to be executed
     
-    FuncDeclNode(const std::string* ty, const std::string* na, Block* stl) :
-                            type(ty), name(na), statements(stl) {
+    SymbolTable* SymTable;
+        
+    // SymbolTable SymTable
+    // Hold a reference to the symbol table here. We need to hold one for 
+    // when the codeGen phase comes along.
+    
+    FuncDeclNode(const std::string* ty, const std::string* na, Block* stl, SymbolTable* st) :
+                            type(ty), name(na), statements(stl), SymTable(st){
                                 std::cout << std::endl << std::endl;
         std::cout << "FuncDeclNode created!" << std::endl;
         std::cout << "Type: " << *type << std::endl;
