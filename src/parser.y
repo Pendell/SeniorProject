@@ -182,23 +182,45 @@ params:         %empty
 varDecl:        typeSpecifier ID "=" expr ";" 
                 {   
                     std::string name = *$2;
-                    std::cout << "THE NAME IS: " << name << std::endl;
                     std::string type = *$1;
+                    
                     if(CheckAndAdd(CurrSymTable, name, type)){
                         
                         // Variable Node Construction
                         $$ = new VarDeclNode($1, $2, $4);
                         
                     } else {
-                        printf("\nSo the variable was already declared...\n");
-                        char* s;
+                    
+                        // Handle the error
+                        char s[100] = {  };
                         sprintf(s, "Redefinition of %s\n", name.c_str());
                         yyerror(s);
                         YYABORT;
+                        
                     }
                     
                 }
-|               typeSpecifier ID ";" { $$ = new VarDeclNode($1, $2); }
+                
+|               typeSpecifier ID ";" 
+                { 
+                    std::string name = *$2;
+                    std::string type = *$1;
+                    
+                    if(CheckAndAdd(CurrSymTable, name, type)){
+                        
+                        // Variable Node Construction
+                        $$ = new VarDeclNode($1, $2);
+                        
+                    } else {
+                    
+                        // Handle the error
+                        char s[100] = {  };
+                        sprintf(s, "Redefinition of %s\n", name.c_str());
+                        yyerror(s);
+                        YYABORT;
+                        
+                    }
+                }
 ;
 
 returnStmt:     "return" expr ";" 
@@ -232,53 +254,10 @@ typeSpecifier:  "int" { $$ = new std::string("int"); }
 * create the main function that my parser will use, as well as the definition*
 * of yyerror, so that I can handle errors in a way that's meaningful to me.  *
 * It's not meaningful to me yet, but it will be in the future. Probably.     *
+* I'm in the process of moving everything out of the epilogue into it's own  *
+* file so that the package looks nicer.                                      *
 *****************************************************************************/
-int main(int argc, char** argv){
-    
-    
-    yydebug = 1;
-    
-    // Open the file, read if good
-    FILE* f = fopen(argv[1], "r");
-    if(!f)  printf("Error: Bad Input\n");
-    
-    
-    else { // We're lexing/parsing the file now
-    
-        
-        yyin = f;
-        CurrSymTable = new SymbolTable();
-        SymList = new std::list<SymbolTable*>();
-        
-        yyparse();
-        fclose(yyin);
-        
-        
-    }
-}
 
-void yyerror(const char* s) {
-    printf("Help! Error! Help! --> %s\n", s);
-}
 
-bool CheckAndAdd(SymbolTable* SymTable, std::string name, std::string type){
-    
-    // Check to see if the symbol already exists in the symbol table 
-    if(SymTable->count(name) != 0){
-        
-        // The symbol already exists
-        return false;
-        
-    } else {
-        
-        std::cout << std::endl;
-        std::cout << "Inserting... " << name << std::endl;
-        std::cout << "Of type... " << type << std::endl;
-        printf("\nBefore insertion, count = %d\n", SymTable->count(name));
-        SymTable->insert({name, type});
-        printf("\nAfter insertion, count = %d\n", SymTable->count(name));
-        printf("SymbolTable Size: %d\n", SymTable->size());
-        printf("Added some stuff to the symbol table\n\n");
-        return true;
-    }
-};
+
+

@@ -1,6 +1,6 @@
 compiler: parser.hpp parser.cpp tokens.cpp 
 	g++ node.h
-	g++ parser.cpp tokens.cpp -lfl -o compiler -I ~/llvm-project/llvm/include/  -I ~/llvm-project/build/include
+	g++ main.cpp -lfl -o compiler -I ~/llvm-project/llvm/include/  -I ~/llvm-project/build/include
 
 parser.cpp parser.hpp: parser.y
 	bison -d -o parser.cpp parser.y --report=all

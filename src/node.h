@@ -4,6 +4,9 @@
  * Senior Project Advisor: Dr. Ladd
  */
 
+#ifndef NODE_H
+#define NODE_H
+
 #include <iostream> 
 #include <vector>   // list construction
 #include <map>      // map construction (for symbol table)
@@ -215,3 +218,5 @@ class FuncDeclNode : public StmtNode {
     }
         
 };
+
+#endif
