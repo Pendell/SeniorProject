@@ -8,20 +8,45 @@
 #define NODE_H
 
 #include <iostream> 
-#include <vector>   // list construction
+#include <list>   // list construction
 #include <map>      // map construction (for symbol table)
 
+/*
+    Reference to global symbol table with any symbols that are defined.
+    FunctionDeclarationList and VariableDeclarationList, potentially.
+    
+    Program (the root) only has one child, and that child is only
+    declarationList.
+    
+    lhs side - (symbol decl list) has 3 production on the right hand side;
+        %empty
+        funcDecl declList
+        varDecl declList
+        
+    This is how a block is used:
+    
+    if() {
+        
+        *BLOCK*
+        
+    };
+    
+    The *true* portion of an if conditional goes to a statement node which could
+    be a block.
+    
+ */
 
 
 // Variable Declarations
 class VarDeclNode;
 
 
-// Define the base 'node' objects we will derive everything else from...
-// Everything is empty right now because all nodes will be some form of
-// derivative of these nodes. I think I'll need the codeGen stuff in here
-// when I get llvm working.
-class ASTNode {};
+/* Define the base 'node' objects we will derive everything else from...
+ * Everything is empty right now because all nodes will be some form of
+ * derivative of these nodes. I think I'll need the codeGen stuff in here
+ * when I get llvm working.
+ */
+class ASTNode { };
 class StmtNode : public ASTNode {
     
 };
@@ -31,13 +56,30 @@ class ExprNode : public ASTNode {
     virtual int getVal() { }
 };
 
+/* A generic Declaration node class so that I can construct the program node
+ * list.
+ */
+class DeclNode : public StmtNode {
+  public:
+    DeclNode* lhs = NULL;
+    DeclNode* rhs = NULL;
+};
+
+
 
 // Typedef the lists and tables, because I'm lazy
-typedef std::vector<StmtNode*> StmtList;
-typedef std::vector<ExprNode*> ExprList;
+typedef std::list<StmtNode*> StmtList;
+typedef std::list<ExprNode*> ExprList;
 
+typedef std::list<DeclNode*> DeclList;
 
 typedef std::map<std::string, std::string> SymbolTable;
+
+
+class Program {
+  public:
+    
+};
 
 /****************************** EXPRESSIONS **********************************/
 
@@ -157,10 +199,11 @@ class ReturnNode : public StmtNode {
     }
 };
 
+
 /* VariableDeclarationNode
  * for creating nodes containing variable definitions
  */
-class VarDeclNode : public StmtNode {
+class VarDeclNode : public DeclNode {
   public:
   
     const std::string* type;
@@ -190,17 +233,17 @@ class VarDeclNode : public StmtNode {
 };
 
 // I think I'm going to use this for arguments, not sure yet.
-typedef std::vector<VarDeclNode*> VarList;
+typedef std::list<VarDeclNode*> VarList;
 
 /* FunctionDeclarationNode
  * for creating nodes containing functions
  */
-class FuncDeclNode : public StmtNode {
+class FuncDeclNode : public DeclNode {
   public:
     const std::string* type;   // return type
     const std::string* name;   // name of function
-    //VarList args;   // arguments passed
-    Block* statements;   // statements to be executed
+    //VarList args;            // arguments passed
+    Block* statements;         // statements to be executed
     
     SymbolTable* SymTable;
         
@@ -218,5 +261,16 @@ class FuncDeclNode : public StmtNode {
     }
         
 };
+
+/******************************* PROGRAM *************************************/
+
+
+class ProgramNode : StmtNode {
+  public:
+    DeclNode* start = NULL;
+    
+    ProgramNode() { }
+};
+
 
 #endif

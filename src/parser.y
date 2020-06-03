@@ -27,7 +27,7 @@
     #define YYDEBUG 1
 
 
-    Block* programBlock; /* the root of the created AST */
+    ProgramNode* Program; /* the root of the created AST */
     
     SymbolTable* CurrSymTable;
     
@@ -52,6 +52,8 @@
 %union { 
     
     Block* block;
+    ProgramNode* program;
+    DeclNode* decl;
     
     // Nodes
     ExprNode* expr;
@@ -79,9 +81,10 @@
 * of the grammar section.                                                    *  
 *****************************************************************************/
 %type<expr>     expr constant
-%type<stmt>     stmt returnStmt exprStmt varDecl funcDecl
-%type<block>    program funcDeclList stmtList 
+%type<stmt>     stmt returnStmt exprStmt  
+%type<block>    program stmtList 
 %type<string>   typeSpecifier
+%type<decl>     declList varDecl funcDecl declaration
 
 %token<token>   VOID "void"  CHAR "char" 
 %token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
@@ -138,9 +141,11 @@
 *****************************************************************************/
 %% 
 
-program:        funcDeclList 
-                { 
-                    programBlock = $1;
+program:        declList
+                {   
+                    $1 = new DeclNode();
+                    Program = new ProgramNode();
+                    Program->start = $1;
                     
                     // Create the Global Symbol Table
                     // Unused for now since the grammar doesn't allow
@@ -150,24 +155,27 @@ program:        funcDeclList
                     
                     // Push the symbol table onto the list.
                     SymList->push_front(GlobalST);
-                    printf("New symbol table created\n");
-                    printf("Symbol Table added to the SymList\n");
+                    //printf("New symbol table created\n");
+                    //printf("Symbol Table added to the SymList\n");
                 }
 ;
 
-funcDeclList:   funcDeclList funcDecl
-|               funcDecl
+declList:       declaration declList { $$ = new DeclNode(); $$->lhs = $1; $$->rhs = $2; }
+|               %empty { }
+;
+
+declaration:    funcDecl { printf("\n\nFuncDecl pushed into DeclNode LHS\n\n"); }
+|               varDecl { printf("\n\nVarDecl pushed into DeclNode RHS\n\n"); }
 ;
 
 funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
                 {   
-                    printf("Before adding SymTable: %d", CurrSymTable->size());
+                    //printf("Before adding SymTable: %d", CurrSymTable->size());
                     $$ = new FuncDeclNode($1, $2, $6, CurrSymTable);
                 }
 ;
 
-stmtList:       stmt stmtList {  /* $3->statements.push_back($<stmt>1); */}
-|               stmt { $$->statements.push_back($<stmt>1); }
+stmtList:       stmt stmtList { }
 |               %empty { }
 ;
 

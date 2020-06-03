@@ -33,7 +33,7 @@ void constructTestAST(Block* programBlock){
     printf("Pushing the test Return Node into StatementList...\n");
     stl->push_back(ret);
     
-    //FuncDeclNode MainDecl = new FuncDeclNode(new std::string("main"), new std::string("int"), stl);
+    //FuncDeclNode mainDecl = new FuncDeclNode(new std::string("main"), new std::string("int"), stl);
 
 }    
 
