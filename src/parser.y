@@ -12,9 +12,9 @@
 *****************************************************************************/
 %{ 
     #include "node.h"
+    #include "src.h"
     
     #include <iostream>
-    #include <string>
     #include <stdio.h>
     #include <list>    // For the symbol table list
     
@@ -33,7 +33,7 @@
     
     std::list<SymbolTable*>* SymList; // A list of Symbol Tables
     
-    bool CheckAndAdd(SymbolTable* SymTable, std::string name, std::string type);
+    
     
 %} 
 
@@ -155,7 +155,7 @@ program:        funcDeclList
                 }
 ;
 
-funcDeclList:   funcDecl, funcDeclList
+funcDeclList:   funcDeclList funcDecl
 |               funcDecl
 ;
 
@@ -166,8 +166,8 @@ funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}"
                 }
 ;
 
-stmtList:       stmt stmtList { /* $3->statements.push_back($<stmt>1); */}
-|               stmt { $$ = new Block(); $$->statements.push_back($<stmt>1); }
+stmtList:       stmt stmtList {  /* $3->statements.push_back($<stmt>1); */}
+|               stmt { $$->statements.push_back($<stmt>1); }
 |               %empty { }
 ;
 
@@ -184,7 +184,7 @@ varDecl:        typeSpecifier ID "=" expr ";"
                     std::string name = *$2;
                     std::string type = *$1;
                     
-                    if(CheckAndAdd(CurrSymTable, name, type)){
+                    if(checkAndAdd(CurrSymTable, name, type)){
                         
                         // Variable Node Construction
                         $$ = new VarDeclNode($1, $2, $4);
@@ -206,7 +206,7 @@ varDecl:        typeSpecifier ID "=" expr ";"
                     std::string name = *$2;
                     std::string type = *$1;
                     
-                    if(CheckAndAdd(CurrSymTable, name, type)){
+                    if(checkAndAdd(CurrSymTable, name, type)){
                         
                         // Variable Node Construction
                         $$ = new VarDeclNode($1, $2);

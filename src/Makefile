@@ -1,5 +1,5 @@
 compiler: parser.hpp parser.cpp tokens.cpp 
-	g++ node.h
+	g++ node.h src.h
 	g++ main.cpp -lfl -o compiler -I ~/llvm-project/llvm/include/  -I ~/llvm-project/build/include
 
 parser.cpp parser.hpp: parser.y
