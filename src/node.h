@@ -49,16 +49,12 @@ class VarDeclNode;
 class ASTNode { 
   public:
   
-    virtual const char* getNodeType(){ 
-        return "ASTNode";
-    }
+    virtual const char* getNodeType(){ }
     
     // No data being stored in this node, so just compare types
     // This function will be overrode as the Node has more data
     // to compare.
-    virtual bool compareNode(ASTNode* node){  
-        return (getNodeType() == node->getNodeType());
-    }
+    virtual bool compareNode(ASTNode* node){ }
     
     
 
@@ -70,8 +66,8 @@ class StmtNode : public ASTNode {
         return "StmtNode";
     }
     
-    bool compareNode(StmtNode* node){
-        return (getNodeType() == node->getNodeType());
+    virtual bool compareNode(StmtNode* node){
+        //return (getNodeType() == node->getNodeType());
     }
     
 };
@@ -83,12 +79,13 @@ class ExprNode : public ASTNode {
     // return the value of this node, if it has one
     virtual int getVal() {}
     
-    const char* getNodeType(){
+    virtual const char* getNodeType(){
         return "ExprNode";
     }
     
-    bool compareNode(ExprNode* node){
-        return (getNodeType() == node->getNodeType());
+    virtual bool compareNode(ASTNode* node){
+        // printf("This shoud not be printed... But I think it will be.\n");
+        // return (getNodeType() == node->getNodeType());
     }
 };
 
@@ -100,11 +97,11 @@ class DeclNode : public StmtNode {
     DeclNode* lhs = NULL;
     DeclNode* rhs = NULL;
     
-    const char* getNodeType(){
+    virtual const char* getNodeType(){
         return "DeclNode";
     }
     
-    bool compareNode(DeclNode* node){
+    virtual bool compareNode(DeclNode* node){
         
         /* CHECK NODE TYPES **********************************/
         if (getNodeType() != node->getNodeType()) {
@@ -162,7 +159,7 @@ class Block : public ExprNode {
         std::cout << std::endl;
     }
     
-    const char* getNodeType(){
+    virtual const char* getNodeType(){
         return "Block";
     }
     
@@ -188,11 +185,13 @@ class IntegerNode : public ExprNode {
     }
     
     
-    bool compareNode(IntegerNode* node){
+    bool compareNode(ExprNode* node){
         if (getNodeType() != node->getNodeType()) {
             return false;
         } else {
-            return getVal() == node->getVal();
+            printf("\u001b[35mInside IntegerNode compareNode()\n");
+            printf("Comparing %d == %d?\u001b[0m\n", getVal(), node->getVal());
+            return (getVal() == node->getVal());
         }
     }
 };
@@ -278,21 +277,28 @@ class ReturnNode : public StmtNode {
     ExprNode* retVal;
     
     ReturnNode(ExprNode* rv) : retVal(rv) {
-        std::cout << std::endl << std::endl;
-        std::cout << "ReturnNode created!" << std::endl;
-        std::cout << "Return Value: " << retVal->getVal() << std::endl;
-        std::cout << std::endl << std::endl;
     }
     
     const char* getNodeType(){
         return "ReturnNode";
     }
     
+    int getVal(){
+        return retVal->getVal();
+    }
+    
+    
     bool compareNode(ReturnNode* node){
         if (getNodeType() != node->getNodeType())
             return false;
         else {
-            return retVal->compareNode(node->retVal);
+            printf("RetVal = %d\n", retVal->getVal());
+            printf("Inside the ReturnNode.\n");
+            printf("Calling compareNode on children.\n");
+            printf("From inside the ReturnNode, the children are...\n");
+            printf("This node's retVal is an %s\n", retVal->getNodeType());
+            printf("The other node's retVal is an %s\n", node->retVal->getNodeType());
+            return (retVal->compareNode(node->retVal));
             
         }
     }
@@ -406,15 +412,6 @@ class ProgramNode : StmtNode {
 
 /*****************************Other functions*********************************/
 
-/*
- */
-bool equals(ProgramNode* p1, ProgramNode* p2) {
-    if(p1->start == NULL || p2->start == NULL) {
-        printf("TEST: One or both start symbols are NULL\n");
-        return false;
-    }
-
-}
 
 
 
