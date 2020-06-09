@@ -8,8 +8,8 @@
 #define NODE_H
 
 #include <iostream> 
-#include <list>   // list construction
-#include <map>      // map construction (for symbol table)
+#include <list>   // for statement lists & params, etc...
+#include <map>    // for symbol table
 
 /*
     Reference to global symbol table with any symbols that are defined.
@@ -46,14 +46,50 @@ class VarDeclNode;
  * derivative of these nodes. I think I'll need the codeGen stuff in here
  * when I get llvm working.
  */
-class ASTNode { };
+class ASTNode { 
+  public:
+  
+    virtual const char* getNodeType(){ 
+        return "ASTNode";
+    }
+    
+    // No data being stored in this node, so just compare types
+    // This function will be overrode as the Node has more data
+    // to compare.
+    virtual bool compareNode(ASTNode* node){  
+        return (getNodeType() == node->getNodeType());
+    }
+    
+    
+
+};
+
 class StmtNode : public ASTNode {
+  public:
+    const char* getNodeType(){
+        return "StmtNode";
+    }
+    
+    bool compareNode(StmtNode* node){
+        return (getNodeType() == node->getNodeType());
+    }
     
 };
 
 class ExprNode : public ASTNode {
   public:
-    virtual int getVal() { }
+    ExprNode* value = NULL;
+    
+    // return the value of this node, if it has one
+    virtual int getVal() {}
+    
+    const char* getNodeType(){
+        return "ExprNode";
+    }
+    
+    bool compareNode(ExprNode* node){
+        return (getNodeType() == node->getNodeType());
+    }
 };
 
 /* A generic Declaration node class so that I can construct the program node
@@ -63,6 +99,38 @@ class DeclNode : public StmtNode {
   public:
     DeclNode* lhs = NULL;
     DeclNode* rhs = NULL;
+    
+    const char* getNodeType(){
+        return "DeclNode";
+    }
+    
+    bool compareNode(DeclNode* node){
+        
+        /* CHECK NODE TYPES **********************************/
+        if (getNodeType() != node->getNodeType()) {
+            return false;
+        } 
+        
+        
+        /** CHECK IF ANYTHING IS NULL WHERE IT SHOULDN'T BE **/
+        if ((lhs == NULL ) && (node->lhs != NULL)) {
+            return false;
+        }
+        
+        if ((lhs != NULL) && (node->lhs == NULL)) {
+            return false;
+        }
+        
+        if ((rhs == NULL) && (node->rhs != NULL)) {
+            return false;
+        }
+        
+        
+        /* CHECK CHILDREN NODES ******************************/
+        return (lhs->compareNode(node->lhs))
+                && (rhs->compareNode(node->rhs));
+        
+    }
 };
 
 
@@ -75,11 +143,6 @@ typedef std::list<DeclNode*> DeclList;
 
 typedef std::map<std::string, std::string> SymbolTable;
 
-
-class Program {
-  public:
-    
-};
 
 /****************************** EXPRESSIONS **********************************/
 
@@ -99,6 +162,9 @@ class Block : public ExprNode {
         std::cout << std::endl;
     }
     
+    const char* getNodeType(){
+        return "Block";
+    }
     
 };
 
@@ -110,16 +176,24 @@ class IntegerNode : public ExprNode {
     int value;
     
     // Constructor
-    IntegerNode(int v) : value(v) {
-        std::cout << std::endl << std::endl;
-        std::cout << "Integer Node Created! Value = " << value << std::endl;
-        std::cout << std::endl << std::endl;
-    }
+    IntegerNode(int v) : value(v) { };
     
     // Print out the value for debugging purposes.
     int getVal(){
         return value;
+    }
     
+    const char* getNodeType(){
+        return "IntegerNode";
+    }
+    
+    
+    bool compareNode(IntegerNode* node){
+        if (getNodeType() != node->getNodeType()) {
+            return false;
+        } else {
+            return getVal() == node->getVal();
+        }
     }
 };
 
@@ -142,6 +216,10 @@ class BinaryOpNode : public ExprNode {
       std::cout << "The operation is : " << op;
       std::cout << std::endl << std::endl;
     }
+    
+    const char* getNodeType(){
+        return "BinaryOpNode";
+    }
 };
 
 /* FunctionCallNode
@@ -159,6 +237,10 @@ class FunctionCallNode : public ExprNode {
         std::cout << "Though implementation not quite finished" << std::endl;
         std::cout << std::endl << std::endl;
     }
+    
+    const char* getNodeType(){
+        return "FunctionCallNode";
+    }
 
 };
 
@@ -172,14 +254,18 @@ class FunctionCallNode : public ExprNode {
  *
  * But I'm pretty sure this how they're constructed.
  */
-class ExpressionStatement : public StmtNode {
+class ExpressionStatementNode : public StmtNode {
   public:
     ExprNode& expr;
     
-    ExpressionStatement(ExprNode& ex) : expr(ex) {
+    ExpressionStatementNode(ExprNode& ex) : expr(ex) {
         std::cout << std::endl << std::endl;
         std::cout << "ExpressionStatement Node created!" << std::endl;
         std::cout << std::endl << std::endl;
+    }
+    
+    const char* getNodeType(){
+        return "ExpressionStatmentNode";
     }
     
 };
@@ -197,6 +283,19 @@ class ReturnNode : public StmtNode {
         std::cout << "Return Value: " << retVal->getVal() << std::endl;
         std::cout << std::endl << std::endl;
     }
+    
+    const char* getNodeType(){
+        return "ReturnNode";
+    }
+    
+    bool compareNode(ReturnNode* node){
+        if (getNodeType() != node->getNodeType())
+            return false;
+        else {
+            return retVal->compareNode(node->retVal);
+            
+        }
+    }
 };
 
 
@@ -205,8 +304,8 @@ class ReturnNode : public StmtNode {
  */
 class VarDeclNode : public DeclNode {
   public:
-  
-    const std::string* type;
+    
+    const std::string* type; 
     const std::string* name;
     
     ExprNode* value;
@@ -229,11 +328,36 @@ class VarDeclNode : public DeclNode {
         std::cout << std::endl << std::endl;
                                
     }
+    
+    const std::string getType(){
+        return std::string(*type);
+    }
+    
+    const std::string getName(){
+        return std::string(*name);
+    }
+    
+    const char* getNodeType(){
+        return "VarDeclNode";
+    }
+    
+    bool compareNode(VarDeclNode* node){
+        // compare types and names
+        if (getType() != node->getType())
+            return false;
+        else if (getName() != node->getName())
+            return false;
+        else{ // Compare values
+            return value->compareNode(node->value);
+        }
+    }
 
 };
 
 // I think I'm going to use this for arguments, not sure yet.
 typedef std::list<VarDeclNode*> VarList;
+
+
 
 /* FunctionDeclarationNode
  * for creating nodes containing functions
@@ -242,8 +366,9 @@ class FuncDeclNode : public DeclNode {
   public:
     const std::string* type;   // return type
     const std::string* name;   // name of function
-    //VarList args;            // arguments passed
-    Block* statements;         // statements to be executed
+    StmtList* statements;      // statements to be executed
+    
+    //VarList args;            // arguments passed * NOT YET IMPLEMENTED *
     
     SymbolTable* SymTable;
         
@@ -251,7 +376,7 @@ class FuncDeclNode : public DeclNode {
     // Hold a reference to the symbol table here. We need to hold one for 
     // when the codeGen phase comes along.
     
-    FuncDeclNode(const std::string* ty, const std::string* na, Block* stl, SymbolTable* st) :
+    FuncDeclNode(const std::string* ty, const std::string* na, StmtList* stl, SymbolTable* st) :
                             type(ty), name(na), statements(stl), SymTable(st){
                                 std::cout << std::endl << std::endl;
         std::cout << "FuncDeclNode created!" << std::endl;
@@ -260,6 +385,9 @@ class FuncDeclNode : public DeclNode {
         std::cout << std::endl << std::endl;
     }
         
+    const char* getNodeType(){
+        return "FuncDeclNode";
+    }
 };
 
 /******************************* PROGRAM *************************************/
@@ -270,7 +398,24 @@ class ProgramNode : StmtNode {
     DeclNode* start = NULL;
     
     ProgramNode() { }
+    
+    const char* getNodeType(){
+        return "ProgramNode";
+    }
 };
+
+/*****************************Other functions*********************************/
+
+/*
+ */
+bool equals(ProgramNode* p1, ProgramNode* p2) {
+    if(p1->start == NULL || p2->start == NULL) {
+        printf("TEST: One or both start symbols are NULL\n");
+        return false;
+    }
+
+}
+
 
 
 #endif

@@ -9,6 +9,7 @@
 #include "node.h"
 
 void yyerror(const char* e);
+
 bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type);
 
 #endif

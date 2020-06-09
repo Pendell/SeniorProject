@@ -14,7 +14,7 @@ extern FILE* yyout;
 extern int yyparse(void);
 
 
-void constructTestAST(Block* programBlock){
+void constructTestAST(ProgramNode* testProgram){
     
     printf("\n++++++++++TEST CONSTRUCTION++++++++++\n");
     printf("\nConstructing the test AST...\n");
@@ -46,7 +46,6 @@ bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type){
         return false;
         
     } else {
-        
         printf("\nInserting... %s\n", name.c_str());
         printf("Of type... %s\n", type.c_str());
         printf("\nBefore insertion, count = %d\n", SymTable->count(name));
@@ -69,7 +68,8 @@ int main(int argc, char** argv){
     
     // Open the file, read if good
     FILE* f = fopen(argv[1], "r");
-    if(!f) {
+    
+    /*if(!f) {
         
         printf("Error: Bad Input\n");
     
@@ -81,9 +81,15 @@ int main(int argc, char** argv){
         yyparse();
         fclose(yyin);
         
-    }
+    }*/
     
-    Block* testBlock;
-    constructTestAST(testBlock);
+    //ProgramNode* testProgram;
+    //constructTestAST(testProgram);
+    
+    //testEquals();
+    
+    printf("Running Node Test suite.\n")
+    
+    
 }
 

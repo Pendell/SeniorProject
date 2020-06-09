@@ -55,6 +55,8 @@
     ProgramNode* program;
     DeclNode* decl;
     
+    StmtList* stmtList;
+    
     // Nodes
     ExprNode* expr;
     StmtNode* stmt;
@@ -82,7 +84,7 @@
 *****************************************************************************/
 %type<expr>     expr constant
 %type<stmt>     stmt returnStmt exprStmt  
-%type<block>    program stmtList 
+%type<stmtList> program stmtList 
 %type<string>   typeSpecifier
 %type<decl>     declList varDecl funcDecl declaration
 
@@ -171,7 +173,7 @@ declaration:    funcDecl { printf("\n\nFuncDecl pushed into DeclNode LHS\n\n"); 
 funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
                 {   
                     //printf("Before adding SymTable: %d", CurrSymTable->size());
-                    $$ = new FuncDeclNode($1, $2, $6, CurrSymTable);
+                    $$ = new FuncDeclNode($1, $2, $<stmtList>6, CurrSymTable);
                 }
 ;
 
