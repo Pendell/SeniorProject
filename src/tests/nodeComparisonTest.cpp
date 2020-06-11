@@ -122,26 +122,18 @@ bool testSimpleNodeComparisons(){
     printf("Testing class ASTNode.\n");
     
     ASTNode* node1 = new ASTNode();
-    //printf("\tNode 1 is of type: %s\n", node1->getNodeType());
     ASTNode* node2 = new ASTNode();
-    //printf("\tNode 2 is of type: %s\n", node2->getNodeType());
     
     printf("Running comparisons...\n");
     if (!node1->equals(node2)){
-        printf("What is going on?\n");
         printf("Test failed. ASTNodes not created/compared correctly\n");
-        TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\t%s == %s? \u001b[32mpassed\u001b[0m\n\n",node1->getNodeType(), node2->getNodeType());
-        TEST_SUCCESS = true;
     }
     
     delete node1;
     delete node2;
-    
-    if (!TEST_SUCCESS) {
-        return TEST_SUCCESS;
-    } 
     
     /* STMT ******************************************************************/
     printf("Testing class StmtNode.\n");
@@ -153,19 +145,13 @@ bool testSimpleNodeComparisons(){
     printf("Running comparisons...\n");
     if (!node1->equals(node2)){
         printf("Test failed. StmtNodes not created/compared correctly");
-        TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\t%s == %s? \u001b[32mpassed\u001b[0m\n\n",node1->getNodeType(), node2->getNodeType());
-        TEST_SUCCESS = true;
     }
     
     delete node1;
     delete node2;
-    
-    if (!TEST_SUCCESS) {
-        printf("Test Failed StmtNode Comparison");
-        return TEST_SUCCESS;
-    } 
     
     /* EXPR ******************************************************************/
     printf("Testing class ExprNode.\n");
@@ -177,10 +163,9 @@ bool testSimpleNodeComparisons(){
     printf("Running compareNode()...\n");
     if (!node1->equals(node2)){
         printf("Test failed. ExprNodes not created/compared correctly");
-        TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\t%s == %s? \u001b[32mpassed\u001b[0m\n\n",node1->getNodeType(), node2->getNodeType());
-        TEST_SUCCESS = true;
     }
     
     delete node1;
@@ -196,7 +181,7 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node1->getNodeType(), node2->getNodeType());
     if(node1->equals(node2)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
@@ -205,7 +190,7 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node1->getNodeType(), node3->getNodeType());
     if(node1->equals(node3)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
@@ -216,7 +201,7 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node2->getNodeType(), node1->getNodeType());
     if(node2->equals(node1)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
@@ -225,7 +210,7 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node2->getNodeType(), node3->getNodeType());
     if(node2->equals(node3)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
@@ -236,7 +221,7 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node3->getNodeType(), node1->getNodeType());
     if(node3->equals(node1)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
@@ -245,18 +230,13 @@ bool testSimpleNodeComparisons(){
     printf("%s != %s? ", node3->getNodeType(), node2->getNodeType());
     if(node3->equals(node2)) {
         printf("\u001b[31mfailed\u001b[0m\n");
-        return TEST_SUCCESS = false;
+        return false;
     } else {
         printf("\u001b[32mpassed\u001b[0m\n");
     }
     
     // All tests passed
-    if (!TEST_SUCCESS) {
-        printf("Test Failed ExprNode Comparison\n");
-        return TEST_SUCCESS;
-    } 
-    
-    return (TEST_SUCCESS );
+    return true;
 
     
 }
@@ -264,7 +244,7 @@ bool testSimpleNodeComparisons(){
 
 int main(){
     
-    
+    // Tests AST, Stmt, and Expr Nodes -- Nodes that don't have data to compare
     printf("\n\nTesting Nodes and Node Comparison...\n");
     if ((TEST_SUCCESS = testSimpleNodeComparisons())){
         printf("\u001b[32mALL SIMPLE TESTS PASS\u001b[0m\n\n");
@@ -273,8 +253,8 @@ int main(){
         return 1;
     }
     
-   
-    
+    // Tests the more complex nodes, like Int and Return -- these nodes
+    // have more data to compare and contrast and more points of failure.
     if ((TEST_SUCCESS = testComplexNodes())){
         printf("\u001b[32mALL COMPLEX TESTS PASS\u001b[0m\n\n");
     } else {
