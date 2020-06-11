@@ -4,7 +4,7 @@ June 11th, 2020
 alex.pendell@gmail.com
 
 
-# The README is a _lie_
+# The README is a *lie*
 
 # Compiling and running the nodeTest
 To run nodeTest (which tests the equals() funcationality of the ASTNodes), change into the _src_ directory and enter:
@@ -37,5 +37,5 @@ and will act as the children(return values) of the ReturnNodes.
 IntegerNodes of the same value (just as in the previous test). These IntegerNodes will act as the children (or return values) of the parent
 ReturnNodes, and are passed to the ReturnNode constructors as such. When equals() is ran, it first invokes the `ReturnNode::equals()` and 
 ensures that both parent nodes are of type ReturnNode, and that the children are either both null, or contain some value. 
-After confirming that each ReturnNode has _some_ value as their return values, the children then invoke equals to compare the two children
+After confirming that each ReturnNode has *some* value as their return values, the children then invoke equals to compare the two children
 nodes(in this case, `IntegerNode::equals()`.

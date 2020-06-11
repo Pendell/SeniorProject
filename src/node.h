@@ -281,8 +281,9 @@ class ReturnNode : public StmtNode {
   public:
     ExprNode* retVal;
     
-    ReturnNode(ExprNode* rv) : retVal(rv) {
-    }
+    ReturnNode() : retVal(nullptr) {}
+    
+    ReturnNode(ExprNode* rv) : retVal(rv) {}
     
     const char* getNodeType(){
         return "ReturnNode";
@@ -293,15 +294,21 @@ class ReturnNode : public StmtNode {
     }
     
     
-    //bool compareNode(ASTNode* node){
     bool equals(ASTNode* node){  
         if (getNodeType() != node->getNodeType())
             return false;
+        
         else {
-            
             ReturnNode* node_casted = dynamic_cast<ReturnNode*>(node);
-            return (retVal->equals(node_casted->retVal));
-            
+            // Check Both Null
+            if(!retVal && !node_casted->retVal)
+                return true;
+            // Check Both not null, if so, compare children
+            else if (retVal && node_casted->retVal) 
+                return (retVal->equals(node_casted->retVal));
+            // One is null, the other isn't, return false.
+            else 
+                return false;
         }
     }
 };
@@ -349,7 +356,6 @@ class VarDeclNode : public DeclNode {
         return "VarDeclNode";
     }
     
-    //bool compareNode(ASTNode* node){
     bool equals(ASTNode* node){  
         if(getNodeType() != node->getNodeType())
             return false;
@@ -420,21 +426,6 @@ class ProgramNode : StmtNode {
 
 /*****************************Other functions*********************************/
 
-/*bool operator==(const ASTNode& node1, const ASTNode& node2){
-    printf("Comparing node pointers.\n");
-    
-    printf("\tNode 1 is of type: %s\n", *node1.getNodeType());
-    printf("\tNode 2 is of type: %s\n", *node2.getNodeType());
-    
-    if(node1->getNodeType() != node->getNodeType()){
-        return false;
-    } else {
-        printf("\tNode 1 is of type: %s\n", *node1.getNodeType());
-        printf("\tNode 2 is of type: %s\n", *node2.getNodeType());
-        
-        return (*node1 == *node2);
-    }
-}*/
-
+// I don't need any yet.
 
 #endif
