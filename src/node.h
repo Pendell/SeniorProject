@@ -55,12 +55,8 @@ class ASTNode {
         return "ASTNode";
     }
     
-    virtual bool operator== (ASTNode node){
-        return (getNodeType() == node.getNodeType());
-    }
-    
-    virtual bool operator!= (ASTNode node) {
-        return !(*this == node);
+    virtual bool equals (ASTNode* node){
+        return (getNodeType() == node->getNodeType());
     }
     
     //virtual void accept(Visitor* visitor){ }
@@ -74,23 +70,14 @@ class StmtNode : public ASTNode {
     }
     
     //virtual bool compareNode(ASTNode* node){
-    virtual bool operator== (ASTNode node){
-        
-        printf("%s\n", getNodeType());
-        printf("%s\n", node.getNodeType());
-        return (getNodeType() == node.getNodeType());
-    }
-    
-    virtual bool operator!= (ASTNode node) {
-        return !(*this == node);
+    virtual bool equals (ASTNode* node){
+        return (getNodeType() == node->getNodeType());
     }
     
 };
 
 class ExprNode : public ASTNode {
   public:
-    // I don't think ExprNodes will point at other ExprNodes.
-    // I think ExprNodes will point at other nodes that point at ExprNodes
     // ExprNode* retVal = NULL;
     
     // return the value of this node, if it has one
@@ -101,13 +88,9 @@ class ExprNode : public ASTNode {
     }
     
     //virtual bool compareNode(ASTNode* node){
-    virtual bool operator==(ASTNode node){
+    virtual bool equals(ASTNode* node){
         // printf("This should not be printed... But I think it will be.\n");
-        return (getNodeType() == node.getNodeType());
-    }
-    
-    virtual bool operator!= (ASTNode node) {
-        return !(*this == node);
+        return (getNodeType() == node->getNodeType());
     }
 };
 
@@ -124,13 +107,13 @@ class DeclNode : public StmtNode {
     }
     
     //bool compareNode(ASTNode* node){ 
-    bool operator==(ASTNode node){    
+    bool equals(ASTNode* node){    
         /* CHECK NODE TYPES **********************************/
-        if (getNodeType() != node.getNodeType()) {
+        if (getNodeType() != node->getNodeType()) {
             return false;
         } 
         
-        DeclNode* node_casted = dynamic_cast<DeclNode*>(&node);        
+        DeclNode* node_casted = dynamic_cast<DeclNode*>(node);        
         
         /** CHECK IF ANYTHING IS NULL WHERE IT SHOULDN'T BE **/
         if ((lhs == NULL ) && (node_casted->lhs != NULL)) {
@@ -149,10 +132,6 @@ class DeclNode : public StmtNode {
         /* CHECK CHILDREN NODES ******************************/
         return ((lhs == node_casted->lhs) && (rhs == node_casted->rhs));
         
-    }
-    
-    bool operator!= (ASTNode node) {
-        return !(*this == node);
     }
 };
 
@@ -212,21 +191,13 @@ class IntegerNode : public ExprNode {
     
     
     //bool compareNode(ASTNode* node){
-    bool operator==(ASTNode node){  
-        if (getNodeType() != node.getNodeType()) {
+    bool equals(ASTNode* node){  
+        if (getNodeType() != node->getNodeType()) {
             return false;
         } else {
-            
-            IntegerNode* node_casted = dynamic_cast<IntegerNode*>(&node);
-            
-            printf("\u001b[35mInside IntegerNode compareNode()\n");
-            printf("Comparing %d == %d?\u001b[0m\n", getVal(), node_casted->getVal());
+            IntegerNode* node_casted = dynamic_cast<IntegerNode*>(node);
             return (getVal() == node_casted->getVal());
         }
-    }
-    
-    bool operator!= (ASTNode node) {
-        return !(*this == node);
     }
 };
 
@@ -323,26 +294,15 @@ class ReturnNode : public StmtNode {
     
     
     //bool compareNode(ASTNode* node){
-    bool operator==(ASTNode node){  
-        if (getNodeType() != node.getNodeType())
+    bool equals(ASTNode* node){  
+        if (getNodeType() != node->getNodeType())
             return false;
         else {
             
-            ReturnNode* node_casted = dynamic_cast<ReturnNode*>(&node);
-            
-            printf("RetVal = %d\n", retVal->getVal());
-            printf("Inside the ReturnNode.\n");
-            printf("Calling compareNode on children.\n");
-            printf("From inside the ReturnNode, the children are...\n");
-            printf("This node's retVal is an %s\n", retVal->getNodeType());
-            printf("The other node's retVal is an %s\n", node_casted->retVal->getNodeType());
-            return (retVal == node_casted->retVal);
+            ReturnNode* node_casted = dynamic_cast<ReturnNode*>(node);
+            return (retVal->equals(node_casted->retVal));
             
         }
-    }
-    
-    bool operator!= (ASTNode node) {
-        return !(*this == node);
     }
 };
 
@@ -390,7 +350,7 @@ class VarDeclNode : public DeclNode {
     }
     
     //bool compareNode(ASTNode* node){
-    bool operator==(ASTNode* node){  
+    bool equals(ASTNode* node){  
         if(getNodeType() != node->getNodeType())
             return false;
         
@@ -404,10 +364,6 @@ class VarDeclNode : public DeclNode {
         else{ // Compare values
             return (value == node_casted->value);
         }
-    }
-    
-    bool operator!= (ASTNode* node) {
-        return (this == node);
     }
 
 };
@@ -464,7 +420,21 @@ class ProgramNode : StmtNode {
 
 /*****************************Other functions*********************************/
 
-
+/*bool operator==(const ASTNode& node1, const ASTNode& node2){
+    printf("Comparing node pointers.\n");
+    
+    printf("\tNode 1 is of type: %s\n", *node1.getNodeType());
+    printf("\tNode 2 is of type: %s\n", *node2.getNodeType());
+    
+    if(node1->getNodeType() != node->getNodeType()){
+        return false;
+    } else {
+        printf("\tNode 1 is of type: %s\n", *node1.getNodeType());
+        printf("\tNode 2 is of type: %s\n", *node2.getNodeType());
+        
+        return (*node1 == *node2);
+    }
+}*/
 
 
 #endif
