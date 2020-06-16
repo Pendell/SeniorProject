@@ -1,5 +1,5 @@
-./src/compiler
-./src/nodeTest
+*/compiler
+*/nodeTest
 
 .node.h.swp
 node.h.gch
