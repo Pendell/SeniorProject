@@ -1,10 +1,10 @@
-*/compiler
-*/nodeTest
+src/compiler
+src/nodeTest
 
-.node.h.swp
-node.h.gch
-parser.hpp
-parser.cpp
-tokens.cpp
-parser.output
-outdated.txt
+src/.node.h.swp
+src/node.h.gch
+src/parser.hpp
+src/parser.cpp
+src/tokens.cpp
+src/parser.output
+src/outdated.txt
