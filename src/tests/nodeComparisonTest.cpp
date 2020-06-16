@@ -545,6 +545,50 @@ bool testFuncDeclNode(){
     
 }
 
+bool testDeclNode(){
+    
+    SymbolTable* symTable = new SymbolTable;
+    StmtList* stmtList = new StmtList;
+    
+    DeclNode* d1 = new DeclNode();
+    
+    DeclNode* ch1 = new DeclNode();
+    
+    d1->rhs = ch1;
+    
+    
+    VarDeclNode* v1 = new VarDeclNode("int", "x", new IntegerNode(10));
+    ReturnNode* r1 = new ReturnNode(new IntegerNode(0));
+    
+    stmtList->push_front(r1);
+    stmtList->push_front(v1);
+    // f1 := int main() { int x = 10; return 0; }
+    
+    
+    FuncDeclNode* f1 = new FuncDeclNode("int", "main", stmtList, symTable);
+    d1->lhs = f1;
+    ch1->lhs = v1;
+    
+    printf("\n\n");
+    printf("The tree setup so far...\n");
+    printf("\t%s\n", d1->getNodeType());
+    printf("%s\n", d1->lhs->getNodeType());
+    printf("\t\t%s\n", ch1->getNodeType());
+    printf("\t%s\n",ch1->lhs->getNodeType());
+    printf("\t\t\t%s\n","nullptr");
+    
+    if(d1->equals(d1)) {
+        printf("Testing ProgramNode\n");
+        ProgramNode* p1 = new ProgramNode();
+        
+        p1->start = d1;
+        return (p1->equals(p1));
+    } else {
+        return false;
+    }
+}
+
+
 int main(){
     
     // Tests AST, Stmt, and Expr Nodes -- Nodes that don't have data to compare
@@ -579,6 +623,13 @@ int main(){
     } else {
         printf("Function Tests \u001b[31mFailed\u001b[0m.\n");
         return 4;
+    }
+    
+    if(testDeclNode()){
+        printf("\u001b[32mALL DECLNODE TESTS PASS\u001b[0m\n\n");
+    } else {
+        printf("Decl Tests \u001b[31mFailed\u001b[0m.\n");
+        return 5;
     }
     
     printf("\u001b[32mAll Tests Passed\u001b[0m\n");

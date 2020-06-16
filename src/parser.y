@@ -26,17 +26,18 @@
 
     #define YYDEBUG 1
 
-
-    ProgramNode* Program; /* the root of the created AST */
+    StmtList* currStmtList = new StmtList;
     
-    SymbolTable* CurrSymTable;
+    // These are defined in main.cpp
+    extern ProgramNode* program; /* the root of the created AST */
+    extern SymbolTable* globalST;
+    extern SymbolTable* currSymTable;
     
     std::list<SymbolTable*>* SymList; // A list of Symbol Tables
     
     
     
 %} 
-
 
 
 /* Union *********************************************************************
@@ -52,9 +53,9 @@
 %union { 
     
     Block* block;
-    ProgramNode* program;
-    DeclNode* decl;
+    ProgramNode* program; 
     
+    DeclNode* decl;
     StmtList* stmtList;
     
     // Nodes
@@ -83,10 +84,11 @@
 * of the grammar section.                                                    *  
 *****************************************************************************/
 %type<expr>     expr constant
-%type<stmt>     stmt returnStmt exprStmt  
-%type<stmtList> program stmtList 
+%type<stmt>     stmt returnStmt exprStmt varDecl funcDecl
+%type<stmtList> stmtList 
 %type<string>   typeSpecifier
-%type<decl>     declList varDecl funcDecl declaration
+%type<decl>     declList declaration
+%type<program>  program
 
 %token<token>   VOID "void"  CHAR "char" 
 %token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
@@ -143,112 +145,58 @@
 *****************************************************************************/
 %% 
 
-program:        declList
-                {   
-                    $1 = new DeclNode();
-                    Program = new ProgramNode();
-                    Program->start = $1;
-                    
-                    // Create the Global Symbol Table
-                    // Unused for now since the grammar doesn't allow
-                    // global variables for the time being, but it's there
-                    SymbolTable* GlobalST = new SymbolTable();
-                    
-                    
-                    // Push the symbol table onto the list.
-                    SymList->push_front(GlobalST);
-                    //printf("New symbol table created\n");
-                    //printf("Symbol Table added to the SymList\n");
-                }
+program:        declList { program->start = $1; }
 ;
 
 declList:       declaration declList { $$ = new DeclNode(); $$->lhs = $1; $$->rhs = $2; }
-|               %empty { }
+|               %empty { $$ = nullptr; }
 ;
 
-declaration:    funcDecl { printf("\n\nFuncDecl pushed into DeclNode LHS\n\n"); }
-|               varDecl { printf("\n\nVarDecl pushed into DeclNode RHS\n\n"); }
+declaration:    funcDecl { }
+|               varDecl { }
 ;
 
-funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" 
-                {   
-                    //printf("Before adding SymTable: %d", CurrSymTable->size());
-                    $$ = new FuncDeclNode($1, $2, $<stmtList>6, CurrSymTable);
+funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" {
+                    printf("FuncDeclNode breaking?\n\n");
+                    const char* type = "int";
+                    const char* name = "main";
+                    $$ = new FuncDeclNode(type, name, currStmtList, currSymTable);
+                    currStmtList = new StmtList(); // Reset stmtlist
+                    printf("Nope.\n");
                 }
 ;
 
-stmtList:       stmt stmtList { }
-|               %empty { }
+stmtList:       stmt stmtList { 
+                    printf("StmtList breaking?\n\n");
+                    currStmtList->push_back($<stmt>1);
+                    printf("Nope.\n");
+                }
+|               %empty
 ;
 
 stmt:           varDecl 
 |               returnStmt
-|               exprStmt
 ;
 
 params:         %empty
 ;
 
-varDecl:        typeSpecifier ID "=" expr ";" 
-                {   
-                    std::string name = *$2;
-                    std::string type = *$1;
-                    
-                    if(checkAndAdd(CurrSymTable, name, type)){
-                        
-                        // Variable Node Construction
-                        $$ = new VarDeclNode($1, $2, $4);
-                        
-                    } else {
-                    
-                        // Handle the error
-                        char s[100] = {  };
-                        sprintf(s, "Redefinition of %s\n", name.c_str());
-                        yyerror(s);
-                        YYABORT;
-                        
-                    }
-                    
+varDecl:        typeSpecifier ID "=" expr ";" {
+                    $$ = new VarDeclNode($1->c_str(), $2->c_str(), $4);
                 }
                 
-|               typeSpecifier ID ";" 
-                { 
-                    std::string name = *$2;
-                    std::string type = *$1;
-                    
-                    if(checkAndAdd(CurrSymTable, name, type)){
-                        
-                        // Variable Node Construction
-                        $$ = new VarDeclNode($1, $2);
-                        
-                    } else {
-                    
-                        // Handle the error
-                        char s[100] = {  };
-                        sprintf(s, "Redefinition of %s\n", name.c_str());
-                        yyerror(s);
-                        YYABORT;
-                        
-                    }
-                }
+|               typeSpecifier ID ";" { }
 ;
 
-returnStmt:     "return" expr ";" 
-                { 
-                    $$ = new ReturnNode($2);
-                }
-;
-
-exprStmt:       ";" {}
-|               expr {}
+returnStmt:     "return" expr ";"{ $$ = new ReturnNode($2); }
 ;
 
 expr:           constant
 ;
  
-constant:       NUMCONST { $$ = new IntegerNode(atoi($1->c_str())); delete $1; }
-|               CHARCONST
-|               STRINGCONST
+constant:       NUMCONST { $$ = new IntegerNode(atoi($1->c_str())); }
+|               CHARCONST { }
+|               STRINGCONST { }
 ;
 
 typeSpecifier:  "int" { $$ = new std::string("int"); }

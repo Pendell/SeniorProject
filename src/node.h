@@ -7,13 +7,15 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <cstring>
+#include <string>
 #include <iostream> 
 #include <list>   // for statement lists & params, etc...
 #include <map>    // for symbol table
 
 #include "./visitorPattern/visitor.h"
 
-/*
+/*  NOTES FROM LADD TALK
     Reference to global symbol table with any symbols that are defined.
     FunctionDeclarationList and VariableDeclarationList, potentially.
     
@@ -56,6 +58,7 @@ class ASTNode {
     }
     
     virtual bool equals (ASTNode* node){
+        printf("Inside ASTNode equals()\n");
         return (getNodeType() == node->getNodeType());
     }
     
@@ -71,6 +74,7 @@ class StmtNode : public ASTNode {
     
     //virtual bool compareNode(ASTNode* node){
     virtual bool equals (ASTNode* node){
+        printf("Inside StmtNode equals()\n");
         return (getNodeType() == node->getNodeType());
     }
     
@@ -99,39 +103,40 @@ class ExprNode : public ASTNode {
  */
 class DeclNode : public StmtNode {
   public:
-    DeclNode* lhs = NULL;
-    DeclNode* rhs = NULL;
+    DeclNode* lhs = nullptr;
+    DeclNode* rhs = nullptr;
+    
+    DeclNode(){
+        printf("\nCreating new DeclNode()\n\n");
+    }
     
     virtual const char* getNodeType(){
         return "DeclNode";
     }
     
+    bool isLast(){
+        return (lhs == nullptr && rhs==nullptr);
+    }
+    
     //bool compareNode(ASTNode* node){ 
-    bool equals(ASTNode* node){    
+    bool equals(ASTNode* node){
+        printf("Inside DeclNode equals()\n");        
         /* CHECK NODE TYPES **********************************/
         if (getNodeType() != node->getNodeType()) {
             return false;
-        } 
-        
-        DeclNode* node_casted = dynamic_cast<DeclNode*>(node);        
-        
-        /** CHECK IF ANYTHING IS NULL WHERE IT SHOULDN'T BE **/
-        if ((lhs == NULL ) && (node_casted->lhs != NULL)) {
-            return false;
         }
         
-        if ((lhs != NULL) && (node_casted->lhs == NULL)) {
-            return false;
+        DeclNode* node_casted = dynamic_cast<DeclNode*>(node);  
+        
+        if(isLast() && node_casted->isLast()) {
+            return true;
+        } else {
+            if(rhs != nullptr) {
+                return (lhs->equals(node_casted->lhs) && rhs->equals(node_casted->rhs));
+            } else {
+                return (lhs->equals(node_casted->lhs));
+            }
         }
-        
-        if ((rhs == NULL) && (node_casted->rhs != NULL)) {
-            return false;
-        }
-        
-        
-        /* CHECK CHILDREN NODES ******************************/
-        return ((lhs == node_casted->lhs) && (rhs == node_casted->rhs));
-        
     }
 };
 
@@ -178,7 +183,7 @@ class IntegerNode : public ExprNode {
     int value;
     
     // Constructor
-    IntegerNode(int v) : value(v) { };
+    IntegerNode(int v) : value(v) { printf("\nCreating new IntegerNode()\n\n"); };
     
     // Print out the value for debugging purposes.
     int getVal(){
@@ -192,7 +197,8 @@ class IntegerNode : public ExprNode {
     
     
     //bool compareNode(ASTNode* node){
-    bool equals(ASTNode* node){  
+    bool equals(ASTNode* node){
+        printf("Inside IntegerNode equals()\n");
         if (getNodeType() != node->getNodeType()) {
             return false;
         } else {
@@ -289,9 +295,9 @@ class ReturnNode : public StmtNode {
   public:
     ExprNode* retVal;
     
-    ReturnNode() : retVal(nullptr) {}
+    ReturnNode() : retVal(nullptr) { printf("\nCreating new ReturnNode()\n\n"); }
     
-    ReturnNode(ExprNode* rv) : retVal(rv) {}
+    ReturnNode(ExprNode* rv) : retVal(rv) {printf("Creating new ReturnNode()\n"); }
     
     const char* getNodeType(){
         return "ReturnNode";
@@ -303,6 +309,7 @@ class ReturnNode : public StmtNode {
     
     
     bool equals(ASTNode* node){
+        printf("Inside ReturnNode equals()\n");
         if (getNodeType() != node->getNodeType())
             return false;
         
@@ -378,7 +385,7 @@ class VarDeclNode : public DeclNode {
     }
     
     bool equals(ASTNode* node) {
-        
+        printf("Inside VarDeclNode equals()\n");
         if(getNodeType() != node->getNodeType()) {
             return false;
         }
@@ -391,10 +398,10 @@ class VarDeclNode : public DeclNode {
        
         
         // compare types, names, then values
-        if (getType() != node_casted->getType()) {
+        if (strcmp(getType(), node_casted->getType()) != 0) {
             printf("\t\u001b[35mVarDeclNode Type mismatch\u001b[0m: THIS type %s != THAT type %s\n", getType(), node_casted->getType());
             return false;
-        } else if (getName() != node_casted->name) {
+        } else if (strcmp(getName(), node_casted->getName()) != 0) {
             printf("\t\u001b[35mVarDeclNode Name mismatch\u001b[0m: THIS name %s != THAT name %s\n", getName(), node_casted->getName());
             return false;
         } else { // Compare values
@@ -433,7 +440,7 @@ class FuncDeclNode : public DeclNode {
   
     const char* type;           // return type
     const char* name;           // name of function
-    StmtList* statements;       // statements to be executed
+    StmtList* statements = new StmtList();       // statements to be executed
     
     //VarList args;             // arguments passed * NOT YET IMPLEMENTED *
     
@@ -445,6 +452,7 @@ class FuncDeclNode : public DeclNode {
     
     FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) :
                             type(ty), name(na), statements(stl), SymTable(st){
+       printf("\nCreating new FuncDeclNode()\n\n");
     }
     
     const char* getType(){
@@ -460,6 +468,7 @@ class FuncDeclNode : public DeclNode {
     }
     
     bool equals(ASTNode* node) {
+        printf("Inside FuncDeclNode equals()\n");
         if (getNodeType() != node->getNodeType()) {
             return false;
         } else {
@@ -467,10 +476,10 @@ class FuncDeclNode : public DeclNode {
             FuncDeclNode* node_casted = dynamic_cast<FuncDeclNode*>(node);
             
             // Simple Comparisons -- Types and names
-            if (type != node_casted->type) {      
+            if (strcmp(getType(), node_casted->getType()) != 0) {      
                 printf("\t\u001b[35mType mismatch\u001b[0m: THIS type (%s) != THAT type (%s)\n", getType(), node_casted->getType());
                 return false;
-            } else if (name != node_casted->name) { 
+            } else if (strcmp(getName(), node_casted->getName()) != 0) { 
                 printf("\t\u001b[35mName mismatch\u001b[0m: THIS name (%s) != THAT name (%s)\n", getName(), node_casted->getName());
                 return false;
             }
@@ -504,8 +513,14 @@ class FuncDeclNode : public DeclNode {
              */
              
             int count = 0; 
-             
-            // Check Statment lists now.
+            
+            if (it1 == statements->end()  && it2 == node_casted->statements->end()) {
+                return true;
+            } else if (it1 == statements->end() ^ it2 == node_casted->statements->end()) {
+                return false;
+            }
+            
+            // Check Statement lists now.
             while(it1 != statements->end() && it2 != node_casted->statements->end()){
                 
                 printf("\tNodes at position %d in StatementLists:\n", count);
@@ -536,15 +551,28 @@ class FuncDeclNode : public DeclNode {
 /******************************* PROGRAM *************************************/
 
 
-class ProgramNode : StmtNode {
+class ProgramNode : public StmtNode {
   public:
-    DeclNode* start = NULL;
+    DeclNode* start = nullptr;
     
-    ProgramNode() { }
+    ProgramNode() { printf("\nCreating new ProgramNode()\n\n"); }
     
     const char* getNodeType(){
         return "ProgramNode";
     }
+    
+    bool equals(ASTNode* node){
+        printf("Inside ProgramNode equals()\n");
+        if (getNodeType() != node->getNodeType())
+            return false;
+        else {
+            ProgramNode* node_casted = dynamic_cast<ProgramNode*>(node);
+            if (start == nullptr ^ node_casted->start == nullptr)
+                return false;
+            else
+                return start->equals(node_casted->start);
+        }
+    }   
 };
 
 /*****************************Other functions*********************************/

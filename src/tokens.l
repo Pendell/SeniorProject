@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string>
 
-// Include <iostream> for debugging purposes
+// Include <iostream> for debugging purposes noinput nounput nodefault
 #include <iostream>
 
 
@@ -24,6 +24,8 @@
 #define TOKEN(t) (yylval.token = t)
 
 %}
+
+%option noyywrap 
 
 
 %%
@@ -48,10 +50,6 @@
 
 [0-9]+                          { SAVE_TOKEN; return NUMCONST; }
 [a-zA-Z_][a-zA-Z0-9_]*          { SAVE_TOKEN; return ID; }
-.                               { /* pass over bad characters for now */ }
+.|\n                            { /* pass over bad characters for now */ }
 
 %%
-
-int yywrap(void) { 
-    return 1; 
-}

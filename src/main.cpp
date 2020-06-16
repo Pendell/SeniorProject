@@ -3,7 +3,6 @@
  * Spring 2020
  * Senior Project Advisor: Dr. Ladd
  */
- 
 #include "parser.cpp"
 #include "parser.hpp"
 #include "tokens.cpp"
@@ -11,31 +10,15 @@
 
 extern FILE* yyin;
 extern FILE* yyout;
+
+// Global variables I need to track constantly
+ProgramNode* program;       // The root of the AST that bison builds
+ProgramNode* testProgram;   // The AST we're handbuilding to test bison against
+
+SymbolTable* globalST;
+SymbolTable* currSymTable;
+
 extern int yyparse(void);
-
-
-void constructTestAST(ProgramNode* testProgram){
-    
-    printf("\n++++++++++TEST CONSTRUCTION++++++++++\n");
-    printf("\nConstructing the test AST...\n");
-    printf("Constructing the test StatementList...\n");
-    StmtList* stl = new StmtList();
-    
-    printf("Constructing the test SymbolTable...\n");
-    SymbolTable* SymTable = new SymbolTable();
-    
-    printf("Constructing the test IntegerNode for the Return...\n");
-    IntegerNode* intNode = new IntegerNode(0);
-    
-    printf("Constructing the test ReturnNode for the function...\n");
-    ReturnNode* ret = new ReturnNode(intNode);
-    
-    printf("Pushing the test Return Node into StatementList...\n");
-    stl->push_back(ret);
-    
-    //FuncDeclNode mainDecl = new FuncDeclNode(new std::string("main"), new std::string("int"), stl);
-
-}    
 
 bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type){
     
@@ -58,6 +41,55 @@ bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type){
     }
 }
 
+/* buildAndTestProgram()
+ * Constructs a quick AST that should be identical to the one  that Bison
+ * constructs when parsing the file ./tests/prog.c.
+ * When the function is complete, testProgram will be the root of the 
+ * test tree. This will allow us to compare the two trees against each other
+ * and verify that Bison is creating the tree we want it to create.
+ */
+void buildAndTestProgram(){
+    
+    testProgram = new ProgramNode();
+    
+    DeclNode* d1 = new DeclNode();
+    DeclNode* d2 = new DeclNode();
+    
+    testProgram->start = d1;
+    
+    StmtList* testStmtList = new StmtList();
+    
+    ReturnNode* r1 = new ReturnNode(new IntegerNode(0));
+    VarDeclNode* x = new VarDeclNode("int", "x", new IntegerNode(10));
+    
+    testStmtList->push_back(r1);
+    testStmtList->push_back(x);
+    
+    const char* type = "int";
+    const char* name = "main";
+    
+    FuncDeclNode* f1 = new FuncDeclNode(type, name, testStmtList, currSymTable);
+    d1->lhs = f1;
+    // d1->rhs = d2;
+    
+    /*
+    
+    if(program->equals(testProgram)) {
+        printf("We've succeeded! Bison is constructing the proper AST!\n");
+    } else {
+        printf("Comparison failed; Program != testProgram\n");
+    }
+    
+    */
+    
+    if(testProgram->equals(program)){
+        printf("We've succeeded! Bison is constructing the proper AST!\n");
+    } else {
+        printf("Comparison failed; Program != testProgram\n");
+    }
+    
+}
+
 void yyerror(const char* s) {
     printf("Help! Error! Help! --> %s\n", s);
 }
@@ -69,26 +101,22 @@ int main(int argc, char** argv){
     // Open the file, read if good
     FILE* f = fopen(argv[1], "r");
     
-    /*if(!f) {
+    if (!f) {
         
         printf("Error: Bad Input\n");
     
     } else { // We're lexing/parsing the file now
-    
         yyin = f;
-        CurrSymTable = new SymbolTable();
-        SymList = new std::list<SymbolTable*>();
+        
+        program = new ProgramNode();
+        currSymTable = new SymbolTable();
+        
         yyparse();
         fclose(yyin);
         
-    }*/
+    }
     
-    //ProgramNode* testProgram;
-    //constructTestAST(testProgram);
-    
-    //testEquals();
-    
-    printf("Running Node Test suite.\n")
+    buildAndTestProgram();
     
     
 }
