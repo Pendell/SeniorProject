@@ -18,8 +18,6 @@ Reset: \u001b[0m
 */
 
 
-bool TEST_SUCCESS = false;
-
 
 /* testComplexNodes is for testing the more complex nodes of an AST.
  * this constitutes tests for more complicated nodes that carry more data than 
@@ -39,7 +37,7 @@ bool testComplexNodes(){
     if (!(node1->equals(node2)) || !(node2->equals(node1))) {
         printf("IntegerNode test failed. %s is", node1->getNodeType());
         printf("\u001b[31mnot\u001b[0m of type \u001b[33m%s\u001b[0m\n", node2->getNodeType());
-        return (TEST_SUCCESS = false);
+        return false;
     } else {
         printf("\tNode1(%s) == Node2(%s)? \u001b[32mpassed\u001b[0m\n",node1->getNodeType(), node2->getNodeType());
     }
@@ -52,7 +50,7 @@ bool testComplexNodes(){
     printf("Testing non-equal values...\n");
     if ((node1->equals(node2)) || (node2->equals(node1))) {
         printf("IntegerNode test \u001b[31mfailed\u001b[0m.\n");
-        return (TEST_SUCCESS = false);
+        return false;
     } else {
         printf("\t%d != %d? \u001b[32mpassed\u001b[0m\n\n", node1->getVal(), node2->getVal());
     }
@@ -129,7 +127,7 @@ bool testComplexNodes(){
     
     if((!rNode1->equals(rNode2)) || (!rNode2->equals(rNode1))){
         printf("ReturnNode test \u001b[31mfailed\u001b[0m.\n");
-        return (TEST_SUCCESS = false);
+        return false;
     } else {
         printf("\tReturn Values: %d == %d? \u001b[32mpassed\u001b[0m\n\n", rNode1->getVal(), rNode2->getVal());
     }
@@ -145,7 +143,7 @@ bool testComplexNodes(){
     
     if((rNode1 == rNode2) || (rNode2 == rNode1)){
         printf("ReturnNode test \u001b[31mfailed\u001b[0m.\n");
-        return (TEST_SUCCESS = false);
+        return false;
     } else {
         printf("\tReturn Values: %d != %d? \u001b[32mpassed\u001b[0m\n", rNode1->getVal(), rNode2->getVal());
     }
@@ -158,7 +156,7 @@ bool testComplexNodes(){
  * of tests. 
  */
 bool testSimpleNodeComparisons(){
-    printf("Testing Simple (AST, Stmt, Expr) Nodes\n");
+    printf("Testing Simple Nodes (AST, Stmt, Expr)\n");
     
     /* AST *******************************************************************/
     printf("Testing class ASTNode.\n");
@@ -183,6 +181,7 @@ bool testSimpleNodeComparisons(){
     printf("\tNode 1 is of type: %s\n", node1->getNodeType());
     node2 = new StmtNode();
     printf("\tNode 2 is of type: %s\n", node2->getNodeType());
+    
     
     printf("Running comparisons...\n");
     if (!node1->equals(node2)){
@@ -285,27 +284,303 @@ bool testSimpleNodeComparisons(){
     
 }
 
+bool testVarDeclNode(){
+    
+    VarDeclNode* v1 = new VarDeclNode("int", "x", new IntegerNode(10));
+    VarDeclNode* v2 = new VarDeclNode("int", "y", new IntegerNode(10));
+    
+    if(v1->equals(v2)){
+        printf("Variable testing failed. Testing yields v1 == v2\n");
+        return false;
+    } else {
+        return true;
+    }
+    
+    // Different Types
+    
+    // Different Values
+
+}
+
+bool testFuncDeclNode(){
+    
+    /* Book Keeping **********************************************************/
+    // New SymbolTable; empty symbol table for now.
+    // SymTable checking not implemented.
+    SymbolTable* symTable = new SymbolTable;
+    
+    // List one will be empty; []
+    StmtList* list1 = new StmtList;
+    
+    // List2 will contain a return node; ["return 0"];
+    StmtList* list2 = new StmtList;
+    
+    // List3 will contain a var and return nodes
+    // but the var is initialized; ["int x = 10", "return 0"]
+    StmtList* list3 = new StmtList;
+    
+    // List4 will contain a var, and return
+    // But the var is uninitialized; ["int y", "return 0"]
+    StmtList* list4 = new StmtList;
+    
+    ReturnNode* r1 = new ReturnNode(new IntegerNode(0));
+    list2->push_front(r1);
+    list3->push_front(r1);
+    list4->push_front(r1);
+    
+    
+    VarDeclNode* x = new VarDeclNode("int", "x", new IntegerNode(10));
+    list3->push_front(x);
+    
+    
+    VarDeclNode* y = new VarDeclNode("int", "y");
+    list4->push_front(y);
+    /* !Book Keeping *********************************************************/
+    
+    
+    // Now we test function nodes.
+    // Test mismatched types and names
+    FuncDeclNode* func1 = new FuncDeclNode("int", "main", list1, symTable);
+    FuncDeclNode* func2 = new FuncDeclNode("char", "main", list1, symTable);
+    FuncDeclNode* func3 = new FuncDeclNode("int", "man", list1, symTable);
+    
+    printf("\u001b[36mFunc1\u001b[0m := \n");
+    printf("int main() { }\n\n");
+    
+    printf("\u001b[36mFunc2\u001b[0m := \n");
+    printf("char main() { }\n\n");
+    
+    printf("\u001b[36mFunc3\u001b[0m := \n");
+    printf("int man() { }\n\n");
+    
+    // Testing func1 against itself, should pass.
+    printf("Comparing \u001b[36mFunc1\u001b[0m vs self -- should be EQUAL\n");
+    if(!func1->equals(func1)) {
+        // If we're in here, there's a problem
+        printf("\tComparison against self: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tComparison against self: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    
+    printf("\n");
+    printf("Comparing \u001b[36mFunc2\u001b[0m vs self-- should show type mismatch\n");
+    if(func1->equals(func2)){
+        printf("\tComparison against func2: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tComparison against func2: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    printf("\n");
+    printf("Comparing \u001b[36mFunc3\u001b[0m vs self -- should show name mismatch\n");
+    if(func1->equals(func3)){
+        printf("\tComparison against func3: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tComparison against func3: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    printf("\n");
+    printf("Type & Name checking \u001b[32mpassed\u001b[0m\n");
+    
+    
+    delete (func1, func2, func3);
+    
+    printf("\nRedefining Function Nodes...\n");
+    func1 = new FuncDeclNode("int", "main", list1, symTable);
+    func2 = new FuncDeclNode("int", "main", list2, symTable);
+    func3 = new FuncDeclNode("int", "main", list3, symTable);
+    FuncDeclNode* func4 = new FuncDeclNode("int", "main", list4, symTable);
+    printf("\n");
+    
+    printf("\u001b[36mFunc1\u001b[0m := \n");
+    printf("int main() { }\n\n");
+    
+    printf("\u001b[36mFunc2\u001b[0m := \n");
+    printf("int main(){ return 0; }\n\n");
+    
+    printf("\u001b[36mFunc3\u001b[0m := \n");
+    printf("int main(){ int x = 10; return 0; }\n\n");
+    
+    printf("\u001b[36mFunc4\u001b[0m := \n");
+    printf("int main(){ int y; return 0; }\n\n");
+    
+    printf("Comparing Function Nodes to themselves -- Should be EQUAL\n");
+    printf("\u001b[36mFunc1\u001b[0m vs \u001b[36mFunc1\u001b[0m\n");
+    if(!func1->equals(func1)) {
+        // If we're in here, there's a problem
+        printf("\tFunc1 comparison against self: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tFunc1 comparison against self: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    printf("\n");
+    printf("\u001b[36mFunc2\u001b[0m vs \u001b[36mFunc2\u001b[0m\n");
+    if(!func2->equals(func2)) {
+        // If we're in here, there's a problem
+        printf("\tFunc2 comparison against self: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tFunc2 comparison against self: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    printf("\n");
+    printf("\u001b[36mFunc3\u001b[0m vs \u001b[36mFunc3\u001b[0m\n");
+    if(!func3->equals(func3)) {
+        // If we're in here, there's a problem
+        printf("\tFunc3 comparison against self: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tFunc3 comparison against self: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    printf("\n");
+    printf("\u001b[36mFunc4\u001b[0m vs \u001b[36mFunc4\u001b[0m\n");
+    if(!func4->equals(func4)) {
+        // If we're in here, there's a problem
+        printf("\tFunc4 comparison against self: \u001b[31mfailed\u001b[0m\n");
+        return false;
+    } else {
+        printf("\tFunc4 comparison against self: \u001b[32mpassed\u001b[0m\n");
+    }
+    
+    
+    printf("\n");
+    printf("Comparing Function Nodes to Each other\n");
+    
+    // Func1 to Func2
+    printf("\u001b[36mFunc1\u001b[0m vs \u001b[36mFunc2\u001b[0m\n");
+    if(func1->equals(func2)) {
+        printf("Incorrect comparison. Func1 == Func2\n");
+        return false;
+    } 
+    
+    
+    // Func1 to Func3
+    printf("\n");
+    printf("\u001b[36mFunc1\u001b[0m vs \u001b[36mFunc3\u001b[0m\n");
+    if(func1->equals(func3)) {
+        printf("Incorrect comparison. Func1 == Func3\n");
+        return false;
+    } 
+    // Func1 to Func4
+    printf("\n");
+    printf("\u001b[36mFunc1\u001b[0m vs \u001b[36mFunc4\u001b[0m\n");
+    if(func1->equals(func4)) {
+        printf("Incorrect comparison. Func1 == Func4\n");
+        return false;
+    }
+    
+    // Func2 to Func1
+    printf("\n");
+    printf("\u001b[36mFunc2\u001b[0m vs \u001b[36mFunc1\u001b[0m\n");
+    if(func2->equals(func1)) {
+        printf("Incorrect comparison. Func2 == Func1\n");
+        return false;
+    } 
+    
+    // Func2 to Func3
+    printf("\n");
+    printf("\u001b[36mFunc2\u001b[0m vs \u001b[36mFunc3\u001b[0m\n");
+    if(func2->equals(func3)) {
+        printf("Incorrect comparison. Func2 == Func3\n");
+        return false;
+    } 
+    // Func2 to Func4
+    printf("\n");
+    printf("\u001b[36mFunc2\u001b[0m vs \u001b[36mFunc4\u001b[0m\n");
+    if(func2->equals(func4)) {
+        printf("Incorrect comparison. Func2 == Func4\n");
+        return false;
+    } 
+    
+    // Func3 to Func1
+    printf("\n");
+    printf("\u001b[36mFunc3\u001b[0m vs \u001b[36mFunc1\u001b[0m\n");
+    if(func3->equals(func1)) {
+        printf("Incorrect comparison. Func3 == Func1\n");
+        return false;
+    } 
+    // Func3 to Func2
+    printf("\n");
+    printf("\u001b[36mFunc3\u001b[0m vs \u001b[36mFunc2\u001b[0m\n");
+    if(func3->equals(func2)) {
+        printf("Incorrect comparison. Func3 == Func2\n");
+        return false;
+    } 
+    // Func3 to Func4
+    printf("\n");
+    printf("\u001b[36mFunc3\u001b[0m vs \u001b[36mFunc4\u001b[0m\n");
+    if(func3->equals(func4)) {
+        printf("Incorrect comparison. Func3 == Func4\n");
+        return false;
+    } 
+    
+    // Func4 to Func1
+    printf("\n");
+    printf("\u001b[36mFunc4\u001b[0m vs \u001b[36mFunc1\u001b[0m\n");
+    if(func4->equals(func1)) {
+        printf("Incorrect comparison. Func4 == Func1\n");
+        return false;
+    } 
+    // Func4 to Func2
+    printf("\n");
+    printf("\u001b[36mFunc4\u001b[0m vs \u001b[36mFunc2\u001b[0m\n");
+    if(func4->equals(func2)) {
+        printf("Incorrect comparison. Func4 == Func2\n");
+        return false;
+    } 
+    // Func4 to Func3
+    printf("\n");
+    printf("\u001b[36mFunc4\u001b[0m vs \u001b[36mFunc3\u001b[0m\n");
+    if(func4->equals(func3)) {
+        printf("Incorrect comparison. Func4 == Func3\n");
+        return false;
+    } 
+    delete (func1, func2, func3, func4);
+    delete (list1, list2, list3, list4);
+    
+}
 
 int main(){
     
     // Tests AST, Stmt, and Expr Nodes -- Nodes that don't have data to compare
+    
     printf("\n\nTesting Nodes and Node Comparison...\n");
-    if ((TEST_SUCCESS = testSimpleNodeComparisons())){
+    if (testSimpleNodeComparisons()){
         printf("\u001b[32mALL SIMPLE TESTS PASS\u001b[0m\n\n");
-    } else if (!TEST_SUCCESS) {
+    } else {
         printf("Simple Node Tests \u001b[31mFailed\u001b[0m.\n");
         return 1;
     }
     
     // Tests the more complex nodes, like Int and Return -- these nodes
     // have more data to compare and contrast and more points of failure.
-    if ((TEST_SUCCESS = testComplexNodes())){
+    if (testComplexNodes()){
         printf("\u001b[32mALL COMPLEX TESTS PASS\u001b[0m\n\n");
     } else {
         printf("Complex Node Tests \u001b[31mFailed\u001b[0m.\n");
         return 2;
     }
     
+    if(testVarDeclNode()){
+        printf("\u001b[32mALL VARIABLE TESTS PASS\u001b[0m\n\n");
+    } else {
+        printf("Variable Node Tests \u001b[31mFailed\u001b[0m.\n");
+        return 3;
+    }
     
+    // Test equals capability when referring to functions.
+    if(testFuncDeclNode()){
+        printf("\u001b[32mALL FUNCTION TESTS PASS\u001b[0m\n\n");
+    } else {
+        printf("Function Tests \u001b[31mFailed\u001b[0m.\n");
+        return 4;
+    }
+    
+    printf("\u001b[32mAll Tests Passed\u001b[0m\n");
 }
 

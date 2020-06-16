@@ -185,6 +185,7 @@ class IntegerNode : public ExprNode {
         return value;
     }
     
+    // Return the type of node this is
     const char* getNodeType(){
         return "IntegerNode";
     }
@@ -196,7 +197,13 @@ class IntegerNode : public ExprNode {
             return false;
         } else {
             IntegerNode* node_casted = dynamic_cast<IntegerNode*>(node);
-            return (getVal() == node_casted->getVal());
+            if (getVal() == node_casted->getVal()) {
+                printf("\tIntegerNodes Equal. Returning true\n");
+                return true;
+            } else {
+                printf("\tIntegerNodes not Equal. Returning false");
+                return false;
+            }
         }
     }
 };
@@ -208,7 +215,7 @@ class IntegerNode : public ExprNode {
  */
 class BinaryOpNode : public ExprNode {
   public:
-    int op;        // Operation
+    int op;         // Operation
     ExprNode& lhs;  // left-hand side
     ExprNode& rhs;  // right-hand side
     
@@ -225,6 +232,7 @@ class BinaryOpNode : public ExprNode {
         return "BinaryOpNode";
     }
 };
+
 
 /* FunctionCallNode
  * This node is created when a function is called.
@@ -294,21 +302,31 @@ class ReturnNode : public StmtNode {
     }
     
     
-    bool equals(ASTNode* node){  
+    bool equals(ASTNode* node){
         if (getNodeType() != node->getNodeType())
             return false;
         
         else {
             ReturnNode* node_casted = dynamic_cast<ReturnNode*>(node);
             // Check Both Null
-            if(!retVal && !node_casted->retVal)
+            if(!retVal && !node_casted->retVal) {
                 return true;
+                
             // Check Both not null, if so, compare children
-            else if (retVal && node_casted->retVal) 
-                return (retVal->equals(node_casted->retVal));
-            // One is null, the other isn't, return false.
-            else 
+            } else if (retVal && node_casted->retVal) {
+                
+                if (retVal->equals(node_casted->retVal)){
+                    printf("Return Nodes Equal. Returning true\n");
+                    return true;
+                } else {
+                    printf("Return Nodes not Equal. Returning false\n");
+                    return false;
+                }
+                
+            } else {
+                printf("Return Nodes not Equal. Returning false\n");
                 return false;
+            }
         }
     }
 };
@@ -320,58 +338,86 @@ class ReturnNode : public StmtNode {
 class VarDeclNode : public DeclNode {
   public:
     
-    const std::string* type; 
-    const std::string* name;
+    const char* type; 
+    const char* name;
     
-    ExprNode* value;
+    ExprNode* value = nullptr;
     
-    VarDeclNode(const std::string* ty, const std::string* na) : type(ty), name(na) {
-        std::cout << std::endl << std::endl;
+    VarDeclNode(const char* ty, const char* na) : type(ty), name(na) {
         std::cout << "VarDeclNode created(No init)!" << std::endl;
-        std::cout << "Type: " << *type << std::endl;
-        std::cout << "Name: " << *name << std::endl;
-        std::cout << std::endl << std::endl;
+        std::cout << "Type: " << type << std::endl;
+        std::cout << "Name: " << name << std::endl;
+        std::cout << std::endl;
     }
     
-    VarDeclNode(const std::string* ty, const std::string* na, ExprNode* va) :
+    VarDeclNode(const char* ty, const char* na, ExprNode* va) :
                             type(ty), name(na), value(va) {
-        std::cout << std::endl << std::endl;
         std::cout << "VarDeclNode created(Init)!" << std::endl;
-        std::cout << "Type: " << *type << std::endl;
-        std::cout << "Name: " << *name << std::endl;
+        std::cout << "Type: " << type << std::endl;
+        std::cout << "Name: " << name << std::endl;
         std::cout << "Value: " << value->getVal() << std::endl;
-        std::cout << std::endl << std::endl;
+        std::cout << std::endl;
                                
     }
     
-    const std::string getType(){
-        return std::string(*type);
+    // Returns the typing of the data stored -- NOT the type of the node
+    const char* getType(){
+        return type;
     }
     
-    const std::string getName(){
-        return std::string(*name);
+    const char* getName(){
+        return name;
+    }
+    
+    int getVal(){
+        return value->getVal();
     }
     
     const char* getNodeType(){
         return "VarDeclNode";
     }
     
-    bool equals(ASTNode* node){  
-        if(getNodeType() != node->getNodeType())
+    bool equals(ASTNode* node) {
+        
+        if(getNodeType() != node->getNodeType()) {
             return false;
+        }
         
         VarDeclNode* node_casted = dynamic_cast<VarDeclNode*>(node);
+        printf("\tVarDeclNode -- THIS node & THAT node info:\n");
+        printf("\tTHIS node type and name: %s %s\n", getType(), getName());
+        printf("\tTHAT node type and name: %s %s\n", node_casted->getType(), node_casted->getName());
         
-        // compare types and names
-        if (getType() != node_casted->getType())
+       
+        
+        // compare types, names, then values
+        if (getType() != node_casted->getType()) {
+            printf("\t\u001b[35mVarDeclNode Type mismatch\u001b[0m: THIS type %s != THAT type %s\n", getType(), node_casted->getType());
             return false;
-        else if (getName() != node_casted->getName())
+        } else if (getName() != node_casted->name) {
+            printf("\t\u001b[35mVarDeclNode Name mismatch\u001b[0m: THIS name %s != THAT name %s\n", getName(), node_casted->getName());
             return false;
-        else{ // Compare values
-            return (value == node_casted->value);
+        } else { // Compare values
+        
+            if (value == nullptr && node_casted->value == nullptr) {
+                return true;
+                
+            } else if (value == nullptr ^ node_casted->value == nullptr) {
+                
+                if(value == nullptr) {
+                    printf("\t\u001b[35m VarDeclNode Value Mismatch: THIS nullptr != THAT %s", node_casted->getVal());
+                } else if (node_casted == nullptr){
+                    printf("\t\u001b[35m VarDeclNode Value Mismatch: THIS %s != THAT nullptr",getVal());
+                }
+                
+            return false;
+            } else if (!value->equals(node_casted->value)) {
+                printf("\t\u001b[35m VarDeclNode Value Mismatch: THIS %s != THAT %s",getVal(), node_casted->getVal());
+            } else {
+                return true;
+            }
         }
     }
-
 };
 
 // I think I'm going to use this for arguments, not sure yet.
@@ -384,11 +430,12 @@ typedef std::list<VarDeclNode*> VarList;
  */
 class FuncDeclNode : public DeclNode {
   public:
-    const std::string* type;   // return type
-    const std::string* name;   // name of function
-    StmtList* statements;      // statements to be executed
+  
+    const char* type;           // return type
+    const char* name;           // name of function
+    StmtList* statements;       // statements to be executed
     
-    //VarList args;            // arguments passed * NOT YET IMPLEMENTED *
+    //VarList args;             // arguments passed * NOT YET IMPLEMENTED *
     
     SymbolTable* SymTable;
         
@@ -396,18 +443,94 @@ class FuncDeclNode : public DeclNode {
     // Hold a reference to the symbol table here. We need to hold one for 
     // when the codeGen phase comes along.
     
-    FuncDeclNode(const std::string* ty, const std::string* na, StmtList* stl, SymbolTable* st) :
+    FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) :
                             type(ty), name(na), statements(stl), SymTable(st){
-                                std::cout << std::endl << std::endl;
-        std::cout << "FuncDeclNode created!" << std::endl;
-        std::cout << "Type: " << *type << std::endl;
-        std::cout << "Name: " << *name << std::endl;
-        std::cout << std::endl << std::endl;
+    }
+    
+    const char* getType(){
+        return type;
+    }
+    
+    const char* getName(){
+        return name;
     }
         
     const char* getNodeType(){
         return "FuncDeclNode";
     }
+    
+    bool equals(ASTNode* node) {
+        if (getNodeType() != node->getNodeType()) {
+            return false;
+        } else {
+            
+            FuncDeclNode* node_casted = dynamic_cast<FuncDeclNode*>(node);
+            
+            // Simple Comparisons -- Types and names
+            if (type != node_casted->type) {      
+                printf("\t\u001b[35mType mismatch\u001b[0m: THIS type (%s) != THAT type (%s)\n", getType(), node_casted->getType());
+                return false;
+            } else if (name != node_casted->name) { 
+                printf("\t\u001b[35mName mismatch\u001b[0m: THIS name (%s) != THAT name (%s)\n", getName(), node_casted->getName());
+                return false;
+            }
+            
+            // Checking statement lists
+            if (statements->empty() ^ node_casted->statements->empty()){
+                printf("\t\u001b[35mStatement List mismatch\u001b[0m: ");
+                if(statements->empty())
+                    printf("This statement list empty\n");
+                else
+                    printf("Node_casted statement list empty\n");
+                return false;
+            }
+            
+            // Parameter Checking ...
+            // Parameters themselves aren't implemented so ...
+            // NOT YET IMPLEMENTED
+            
+            // Symbol Table Checking ...
+            // NOT YET IMPLEMENTED
+            
+            
+            
+            // Now we compare statement lists, which is actually
+            // just a list of nodes to run equals() on.
+            StmtList::iterator it1 = statements->begin();
+            StmtList::iterator it2 = node_casted->statements->begin();
+            /* Notes:
+             * Iterators point at the objects that make up the thing we're iterating over.
+             * So in this case, I think they should all point at StmtNodes of some kind.
+             */
+             
+            int count = 0; 
+             
+            // Check Statment lists now.
+            while(it1 != statements->end() && it2 != node_casted->statements->end()){
+                
+                printf("\tNodes at position %d in StatementLists:\n", count);
+                
+                printf("\t\tNode1 type: %s\n", (*it1)->getNodeType());
+                printf("\t\tNode2 type: %s\n\n", (*it2)->getNodeType());
+                if (!((*it1)->equals(*it2))){
+                    printf("\t\u001b[35mASTNode Type mismatch\u001b[0m: THIS %s != THAT %s\n", (*it1)->getNodeType(), (*it2)->getNodeType());
+                    return false;
+                } else {
+                    ++it1;
+                    ++it2;
+                    ++count;
+                }
+            }
+            
+            
+            
+            return true;
+        }
+    }
+    
+    
+    
+    
 };
 
 /******************************* PROGRAM *************************************/
