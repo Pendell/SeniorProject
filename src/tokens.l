@@ -1,6 +1,6 @@
 %{
 
-#include "node.h"
+#include "./nodes/node.h"
 #include "parser.hpp"
 
 #include <stdio.h>

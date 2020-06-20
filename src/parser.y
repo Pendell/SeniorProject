@@ -11,15 +11,13 @@
 * section over to the actual C++ file that Bison creates, line for line.     *
 *****************************************************************************/
 %{ 
-    #include "node.h"
-    #include "src.h"
+    #include "./nodes/node.h"
     
     #include <iostream>
     #include <stdio.h>
     #include <list>    // For the symbol table list
     
-    void yyerror(const char* e);
-    
+    extern void yyerror(const char* e);
     extern FILE* yyin;
     extern int yyparse();
     extern int yylex();
@@ -52,7 +50,6 @@
 *****************************************************************************/
 %union { 
     
-    Block* block;
     ProgramNode* program; 
     
     DeclNode* decl;
@@ -84,7 +81,7 @@
 * of the grammar section.                                                    *  
 *****************************************************************************/
 %type<expr>     expr constant
-%type<stmt>     stmt returnStmt exprStmt varDecl funcDecl
+%type<stmt>     stmt returnStmt  varDecl funcDecl
 %type<stmtList> stmtList 
 %type<string>   typeSpecifier
 %type<decl>     declList declaration
@@ -168,17 +165,14 @@ funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" {
 
 stmtList:       stmt stmtList { 
                     printf("StmtList breaking?\n\n");
-                    currStmtList->push_back($<stmt>1);
+                    currStmtList->push_front($<stmt>1);
                     printf("Nope.\n");
                 }
-|               %empty
+|               %empty {}
 ;
 
 stmt:           varDecl 
 |               returnStmt
-;
-
-params:         %empty
 ;
 
 varDecl:        typeSpecifier ID "=" expr ";" {
