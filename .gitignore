@@ -1,6 +1,6 @@
 src/compiler
 src/nodeTest
-
+src/build/*.o
 src/.node.h.swp
 src/node.h.gch
 src/parser.hpp
