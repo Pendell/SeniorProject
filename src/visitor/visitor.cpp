@@ -1,5 +1,7 @@
 #include "visitor.h"
 
+#include <llvm/IR/Value.h>
+
 // Visitor
 Visitor::Visitor(){
     printf("New Visitor Created\n");
@@ -49,4 +51,16 @@ void PrintVisitor::visit(FuncDeclNode* node){
 
 void PrintVisitor::visit(ProgramNode* node){
     printf("Visiting a Program Node!\n");
+}
+
+CodeGenVisitor::CodeGenVisitor(){
+    printf("New CodeGenVisitor Created\n");
+}
+
+CodeGenVisitor::~CodeGenVisitor(){
+    
+}
+
+void CodeGenVisitor::visit(IntegerNode* node){
+    codeGen(CodeGenContext* context);
 }

@@ -119,6 +119,10 @@ void IntegerNode::accept(Visitor* v){
     v->visit(this);
 }
 
+llvm::Value* IntegerNode::codeGen(CodeGenContext* context){
+    // Do nothing for now
+}
+
 
 
 /***************************** RETURN NODE ***********************************/
@@ -340,7 +344,7 @@ bool FuncDeclNode::equals(ASTNode* node) {
 }
 
 void FuncDeclNode::accept(Visitor* v){
-    printf("FuncDeclNode Accepting visitor\n");
+    
     v->visit(this);
     
     // Navigate through statement list

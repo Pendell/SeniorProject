@@ -1,25 +1,10 @@
 /* Alex Pendell : alex.pendell@gmail.com
- * SeniorProject - Compiler : node.h
+ * SeniorProject - Compiler 
  * Spring 2020
- * Senior Project Advisor: Dr. Ladd
  */
  
-#ifndef NODE_H
-#define NODE_H
-
-#include <cstring>
-#include <string>
-#include <iostream>
-
-#include <list>   // for statement lists & params, etc...
-#include <map>    // for symbol table
-
-#include "../visitor/visitor.h"
-
-
-
-
-/*  NOTES FROM LADD TALK
+ 
+ /*  NOTES FROM LADD TALK
     Reference to global symbol table with any symbols that are defined.
     FunctionDeclarationList and VariableDeclarationList, potentially.
     
@@ -43,11 +28,29 @@
     be a block.
     
  */
+ 
+#ifndef NODE_H
+#define NODE_H
+
+#include <cstring>
+#include <string>
+#include <iostream>
+
+#include <list>   // for statement lists & params, etc...
+#include <map>    // for symbol table
+
+
+
+
+
+#include "../visitor/visitor.h"
+
 
 
 // Forward Declarations
 class VarDeclNode;
 class Visitor;
+class CodeGenContext;
 
 /* Define the base 'node' objects we will derive everything else from...
  * Everything is empty right now because all nodes will be some form of
@@ -136,6 +139,8 @@ class IntegerNode : public ExprNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
+    virtual llvm::Value* codeGen(CodeGenContext* context);
+    
 };
 
 /****************************** STATEMENTS ***********************************/
@@ -143,7 +148,9 @@ class IntegerNode : public ExprNode {
  * for returning expressions
  */
 class ReturnNode : public StmtNode {
+    
   public:
+  
     ExprNode* retVal;
     
     ReturnNode();
@@ -153,6 +160,8 @@ class ReturnNode : public StmtNode {
     int getVal();
     bool equals(ASTNode* node);
     void accept(Visitor* v);
+    
+    
     
 };
 
