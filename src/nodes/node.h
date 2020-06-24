@@ -38,19 +38,18 @@
 
 #include <list>   // for statement lists & params, etc...
 #include <map>    // for symbol table
-
-
-
+#include <vector>
 
 
 #include "../visitor/visitor.h"
 
 
-
 // Forward Declarations
 class VarDeclNode;
 class Visitor;
-class CodeGenContext;
+
+
+
 
 /* Define the base 'node' objects we will derive everything else from...
  * Everything is empty right now because all nodes will be some form of
@@ -64,6 +63,7 @@ class ASTNode {
     virtual const char* getNodeType();
     virtual bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
+    
 };
 
 class StmtNode : public ASTNode {
@@ -73,10 +73,6 @@ class StmtNode : public ASTNode {
     virtual const char* getNodeType();
     virtual bool equals (ASTNode* node);
     
-    // virtual void accept(Visitor* v){
-        // // Visit this node
-        // v->visit(&this);
-    // }
     
 };
 
@@ -88,10 +84,7 @@ class ExprNode : public ASTNode {
     virtual const char* getNodeType();
     virtual bool equals(ASTNode* node);
     
-    // virtual void accept(Visitor* v){
-        // // Visit this node
-        // v->visit(&this);
-    // }
+    
 };
 
 /* A generic Declaration node class so that I can construct the program node
@@ -112,6 +105,7 @@ class DeclNode : public StmtNode {
     bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
     
+    
 };
 
 
@@ -123,8 +117,6 @@ typedef std::list<DeclNode*> SymbolTable;
 
 
 /****************************** EXPRESSIONS **********************************/
-
-
 /* IntegerNode
  * for IntegerConstants
  */
@@ -137,9 +129,10 @@ class IntegerNode : public ExprNode {
     int getVal();
     const char* getNodeType();
     bool equals(ASTNode* node);
+    
+    // Visitor Functionality
     void accept(Visitor* v);
     
-    virtual llvm::Value* codeGen(CodeGenContext* context);
     
 };
 
@@ -184,24 +177,47 @@ class VarDeclNode : public DeclNode {
     // Returns the typing of the data stored -- NOT the type of the node
     const char* getType();
     const char* getName();
+    
     int getVal();
+    
     const char* getNodeType();
     bool equals(ASTNode* node);
+    
     void accept(Visitor* v);
+    
     
 };
 
 // I think I'm going to use this for arguments, not sure yet.
 typedef std::list<VarDeclNode*> VarList;
 
+class PrototypeNode : public ASTNode {
+  public:
+  
+    const char* name;
+    const char* type;
+    
+    std::vector<char*> args;
+    
+    PrototypeNode(const char* ty, const char* na);
+    ~PrototypeNode();
+    
 
+    void accept(Visitor* v);
+    const char* getName();
+    const char* getType();
+    
+};
 
 /* FunctionDeclarationNode
  * for creating nodes containing functions
  */
 class FuncDeclNode : public DeclNode {
+    
   public:
-  
+    
+    PrototypeNode* prototype;
+    
     const char* type;           // return type
     const char* name;           // name of function
     StmtList* statements;       // statements to be executed
@@ -213,6 +229,7 @@ class FuncDeclNode : public DeclNode {
     // when the codeGen phase comes along.
     
     FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st);
+    ~FuncDeclNode();
     
     const char* getType();
     const char* getName();
@@ -220,19 +237,28 @@ class FuncDeclNode : public DeclNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
+    
 };
 
 /******************************* PROGRAM *************************************/
 class ProgramNode : public StmtNode {
     
+    const char* srcName;
+    
   public:
+  
+    
+    
     DeclNode* start;
     ProgramNode();
+    ProgramNode(char* src);
     
     const char* getNodeType();
+    const char* getName();
     
     bool equals(ASTNode* node);
     void accept(Visitor* v);
+    
     
 };
 

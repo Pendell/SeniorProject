@@ -1,6 +1,5 @@
 #include "node.h"
 
-
 /******************************* AST NODE ************************************/
 const char* ASTNode::getNodeType(){
     return "ASTNode";
@@ -15,18 +14,15 @@ void ASTNode::accept(Visitor* v){
     v->visit(this);
 }
 
-
 /******************************* STMT NODE ***********************************/
 const char* StmtNode::getNodeType(){
     return "StmtNode";
 }
 
-//virtual bool compareNode(ASTNode* node){
 bool StmtNode::equals(ASTNode* node){
     printf("Inside StmtNode equals()\n");
     return (getNodeType() == node->getNodeType());
 }
-
 
 /******************************* EXPR NODE ***********************************/
 int ExprNode::getVal(){}
@@ -37,6 +33,7 @@ const char* ExprNode::getNodeType(){
 bool ExprNode::equals(ASTNode* node){
     return (getNodeType() == node->getNodeType());
 }
+
 
 /******************************* DECL NODE ***********************************/
 DeclNode::DeclNode() {
@@ -88,7 +85,7 @@ void DeclNode::accept(Visitor* v){
 // Constructor
 IntegerNode::IntegerNode(int v) : value(v) {}
 
-// Print out the value for debugging purposes.
+// Return the value held in this integer node
 int IntegerNode::getVal(){
     return value;
 }
@@ -98,7 +95,10 @@ const char* IntegerNode::getNodeType(){
     return "IntegerNode";
 }
 
-
+// Compare this ASTNode to another ASTNode.
+// Returns TRUE if the following are met:
+//   this nodeType = that nodeType
+//   this value = that value
 bool IntegerNode::equals(ASTNode* node){
     printf("Inside IntegerNode equals()\n");
     if (getNodeType() != node->getNodeType()) {
@@ -118,11 +118,6 @@ bool IntegerNode::equals(ASTNode* node){
 void IntegerNode::accept(Visitor* v){
     v->visit(this);
 }
-
-llvm::Value* IntegerNode::codeGen(CodeGenContext* context){
-    // Do nothing for now
-}
-
 
 
 /***************************** RETURN NODE ***********************************/
@@ -253,16 +248,40 @@ void VarDeclNode::accept(Visitor* v){
 }
 
 
-/***************************** FUNCDECL NODE *********************************/
-FuncDeclNode::FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) :
-                            type(ty), name(na), statements(stl), SymTable(st){ }
-    
-const char* FuncDeclNode::getType(){
+/***************************** PROTOTYPE NODE ********************************/
+PrototypeNode::PrototypeNode(const char* ty, const char* na) : type(ty), name(na) { }
+
+PrototypeNode::~PrototypeNode() {
+
+}
+
+void PrototypeNode::accept(Visitor* v) {
+    v->visit(this);
+}
+
+const char* PrototypeNode::getName(){
+    return name;
+}
+
+const char* PrototypeNode::getType(){
     return type;
 }
 
+/***************************** FUNCDECL NODE *********************************/
+FuncDeclNode::FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) : statements(stl), SymTable(st){
+    prototype = new PrototypeNode(ty, na);
+}
+
+FuncDeclNode::~FuncDeclNode() {
+    delete prototype;
+}
+    
+const char* FuncDeclNode::getType(){
+    return prototype->getType();
+}
+
 const char* FuncDeclNode::getName(){
-    return name;
+    return prototype->getName();
 }
     
 const char* FuncDeclNode::getNodeType(){
@@ -270,7 +289,9 @@ const char* FuncDeclNode::getNodeType(){
 }
 
 bool FuncDeclNode::equals(ASTNode* node) {
+    
     printf("Inside FuncDeclNode equals()\n");
+    
     if (getNodeType() != node->getNodeType()) {
         return false;
     } else {
@@ -345,8 +366,6 @@ bool FuncDeclNode::equals(ASTNode* node) {
 
 void FuncDeclNode::accept(Visitor* v){
     
-    v->visit(this);
-    
     // Navigate through statement list
     if (!statements->empty()){
         
@@ -358,10 +377,17 @@ void FuncDeclNode::accept(Visitor* v){
             
         }
     }
+    
+    v->visit(this);
 }
+
 
 /***************************** PROGRAM NODE *********************************/
 ProgramNode::ProgramNode() { 
+    start = nullptr;
+}
+
+ProgramNode::ProgramNode(char* src) : srcName(src) {
     start = nullptr;
 }
     
@@ -383,12 +409,15 @@ bool ProgramNode::equals(ASTNode* node) {
     }
 }
 
+const char* ProgramNode::getName(){
+    return srcName;
+}
+
 void ProgramNode::accept(Visitor* v){
     v->visit(this);
     if (start)
         start->accept(v);
 }
-
 
 
 

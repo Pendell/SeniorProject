@@ -12,6 +12,7 @@
 
 extern FILE* yyin;
 extern FILE* yyout;
+extern llvm::LLVMContext TheContext;
 
 // Global variables I need to track constantly
 ProgramNode* program;       // The root of the AST that bison builds
@@ -109,7 +110,7 @@ int main(int argc, char** argv){
     } else { // We're lexing/parsing the file now
         yyin = f;
         
-        program = new ProgramNode();
+        program = new ProgramNode(argv[1]);
         currSymTable = new SymbolTable();
         globalST = new SymbolTable();
         
@@ -118,7 +119,11 @@ int main(int argc, char** argv){
         
     }
     
-    buildAndTestProgram();
+    //buildAndTestProgram();
+    
+    CodeGenVisitor* cgv = new CodeGenVisitor();
+    
+    program->accept(cgv);
     
     /*
     PrintVisitor* pv = new PrintVisitor();
@@ -131,7 +136,6 @@ int main(int argc, char** argv){
     
     p->accept(pv);
     */
-   
     
 }
 
