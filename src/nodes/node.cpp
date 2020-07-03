@@ -1,5 +1,7 @@
 #include "node.h"
 
+using namespace llvm;
+
 /******************************* AST NODE ************************************/
 const char* ASTNode::getNodeType(){
     return "ASTNode";
@@ -71,13 +73,31 @@ bool DeclNode::equals(ASTNode* node){
 }
 
 void DeclNode::accept(Visitor* v){
+    printf("Inside DeclNode accept().\n");
     
     v->visit(this);
     
-    if(lhs)
+    printf("Is the DeclNode visit breaking?\n");
+    
+    if(lhs) {
+        printf("lhs? Yep!\n");
         lhs->accept(v);
-    if(rhs)
+    }
+    
+    if(rhs) {
+        printf("rhs? Yessir!\n");
         rhs->accept(v);
+    }
+}
+
+void DeclNode::codegen(){
+    
+    if(lhs)
+        lhs->codegen();
+    
+    if(rhs)
+        rhs->codegen();
+    
 }
 
 
@@ -119,6 +139,10 @@ void IntegerNode::accept(Visitor* v){
     v->visit(this);
 }
 
+// LLVM Codegen method
+void IntegerNode::codegen(){
+    //return ConstantInt::get(TheContext, APInt(32, value, true));
+}
 
 /***************************** RETURN NODE ***********************************/
 // Constructors
@@ -169,6 +193,9 @@ void ReturnNode::accept(Visitor* v){
         retVal->accept(v);
 }
 
+void ReturnNode::codegen(){
+    builder.CreateRet(ConstantInt::get(Type::getInt32Ty(TheContext), retVal->getVal()));
+}
 
 /***************************** VARDECL NODE **********************************/
 
@@ -247,6 +274,15 @@ void VarDeclNode::accept(Visitor* v){
         value->accept(v);
 }
 
+void VarDeclNode::codegen() {
+    
+    // printf("Hmm.... inside vardeclnode stuff.\n");
+    // printf("Varname: %s\n", this->getName());
+    // Value* V = NamedValues[this->getName()];
+    // if(!V)
+        // printf("Unknown Variable Name\n");
+    // return V;
+}
 
 /***************************** PROTOTYPE NODE ********************************/
 PrototypeNode::PrototypeNode(const char* ty, const char* na) : type(ty), name(na) { }
@@ -267,24 +303,42 @@ const char* PrototypeNode::getType(){
     return type;
 }
 
+void PrototypeNode::codegen(){
+    // std::vector<Type*> Ints(args.size(), Type::getInt32Ty(TheContext));
+    
+    // //
+    // FunctionType* ft = FunctionType::get(Type::getInt32Ty(TheContext), Ints, false);
+    
+    // Function *f = Function::Create(ft, Function::InternalLinkage, name, TheModule.get());
+    
+    // // Set the name of each of the functions arguments according to the names given
+    // // in the prototype.
+    // unsigned Idx = 0;
+    // for(auto &Arg : f->args())
+        // Arg.setName(args[Idx++]);
+    
+    // return f;
+    
+}
+
 /***************************** FUNCDECL NODE *********************************/
-FuncDeclNode::FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) : statements(stl), SymTable(st){
-    prototype = new PrototypeNode(ty, na);
+FuncDeclNode::FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) : type(ty), name(na), statements(stl), SymTable(st){
+    // prototype = new PrototypeNode(ty, na);
 }
 
 FuncDeclNode::~FuncDeclNode() {
     delete prototype;
 }
     
-const char* FuncDeclNode::getType(){
-    return prototype->getType();
+const char* FuncDeclNode::getType() {
+    return type; //prototype->getType();
 }
 
-const char* FuncDeclNode::getName(){
-    return prototype->getName();
+const char* FuncDeclNode::getName() {
+    return name; //prototype->getName();
 }
     
-const char* FuncDeclNode::getNodeType(){
+const char* FuncDeclNode::getNodeType() {
     return "FuncDeclNode";
 }
 
@@ -364,7 +418,7 @@ bool FuncDeclNode::equals(ASTNode* node) {
     }
 }
 
-void FuncDeclNode::accept(Visitor* v){
+void FuncDeclNode::accept(Visitor* v) {
     
     // Navigate through statement list
     if (!statements->empty()){
@@ -381,6 +435,35 @@ void FuncDeclNode::accept(Visitor* v){
     v->visit(this);
 }
 
+void FuncDeclNode::codegen() {
+    
+    FunctionType* ft;
+    
+    if (strcmp(getType(), "int") == 0){
+        ft = FunctionType::get(Type::getInt32Ty(TheContext), false);
+    }
+    
+    Function* f = Function::Create(ft, Function::ExternalLinkage, StringRef(getName()), TheModule);
+    
+    // Construct the basic block - one entry, one exit. Basic string of instructions
+    BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
+    
+    // Tells the builder to insert new instructions to the end of this block
+    builder.SetInsertPoint(bb);
+    
+    // Iterate through statements...
+    StmtList::iterator it = statements->begin();
+    
+    int count = 1;
+    while(it != statements->end()){
+        (*it)->codegen();
+        ++it;
+        ++count;
+    }
+    
+    verifyFunction(*f, &errs());
+    
+}
 
 /***************************** PROGRAM NODE *********************************/
 ProgramNode::ProgramNode() { 
@@ -396,7 +479,7 @@ const char* ProgramNode::getNodeType() {
 }
 
 bool ProgramNode::equals(ASTNode* node) {
-    printf("Inside ProgramNode equals()\n");
+    
     if (getNodeType() != node->getNodeType())
         return false;
     else {
@@ -409,17 +492,95 @@ bool ProgramNode::equals(ASTNode* node) {
     }
 }
 
-const char* ProgramNode::getName(){
+const char* ProgramNode::getName() {
     return srcName;
 }
 
-void ProgramNode::accept(Visitor* v){
+void ProgramNode::accept(Visitor* v) {
     v->visit(this);
-    if (start)
+    
+    if (start) {
         start->accept(v);
+    }
 }
 
+void ProgramNode::compile(){
+    
+    auto TargetTriple = sys::getDefaultTargetTriple();
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+    
+    std::string error;
+    
+    // Grab the target Triple we're compiling to.
+    auto Target = TargetRegistry::lookupTarget(TargetTriple, error);
+    
+    if(!Target){
+        errs() << error;
+        return;
+    }
+    
+    // Generic CPU without any additional features, options, or anything.
+    auto CPU = "generic";
+    auto Features = "";
+    TargetOptions opt;
+    
+    // No idea what this line does...
+    auto RM = Optional<Reloc::Model>();
+    
+    // Define the target machine for the module to compile to.
+    auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+    
+    // Configure the module to specify the target and data layout.
+    TheModule->setDataLayout(TargetMachine->createDataLayout());
+    TheModule->setTargetTriple(TargetTriple);
+    
+    // OUTPUT FILE STUFF
+    // Declare the name of the file and error codes
+    auto Filename = "test.o";
+    std::error_code EC;
+    // set the destination.
+    raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+    
+    // Print errors
+    if (EC) {
+      errs() << "Could not open file: " << EC.message();
+      return;
+    }
+    
+    // Create a new passmanager -- this is what passes over the module and emits code
+    legacy::PassManager pass;
+    
+    // Define the object type to be an object file
+    auto FileType = TargetMachine::CGFT_ObjectFile;
+    
+    // Catch errors
+    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+      errs() << "TargetMachine can't emit a file of this type";
+      return;
+    }
 
+    // Run the pass
+    pass.run(*TheModule);
+    
+    // Print the pass to the file.
+    dest.flush();
+    
+    // Print out the module to the terminal for debugging
+    TheModule->print(errs(), nullptr);
+}
+
+void ProgramNode::codegen() {
+    
+    TheModule = new Module(std::string(getName()), TheContext);
+    if(start)
+        start->codegen();
+    
+    compile();
+}
 
 
 

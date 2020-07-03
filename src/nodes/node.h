@@ -28,6 +28,29 @@
     be a block.
     
  */
+
+// LLVM goodies 
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
  
 #ifndef NODE_H
 #define NODE_H
@@ -35,20 +58,43 @@
 #include <cstring>
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include <list>   // for statement lists & params, etc...
 #include <map>    // for symbol table
 #include <vector>
 
-
 #include "../visitor/visitor.h"
 
+
+using namespace llvm;
 
 // Forward Declarations
 class VarDeclNode;
 class Visitor;
+class ASTNode;
 
+// TheContext = object that accesses much of the core llvm data structures
+static LLVMContext TheContext;
 
+// The object that constructs much of the instruction for IR
+static IRBuilder<> builder(TheContext);
+
+// Top level container of the program
+static Module* TheModule;
+
+// An llvm-implemented symbol table
+static std::map<std::string, Value *> NamedValues;
+
+// ASTNode* LogError(const char* str){
+    // fprintf(stderr, "Error: %s\n", str);
+    // return nullptr;
+// }
+
+// Value* LogErrorV(const char* str){
+    // LogError(str);
+    // return nullptr;
+// }
 
 
 /* Define the base 'node' objects we will derive everything else from...
@@ -64,6 +110,8 @@ class ASTNode {
     virtual bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
     
+    virtual void codegen() = 0;
+    
 };
 
 class StmtNode : public ASTNode {
@@ -72,6 +120,8 @@ class StmtNode : public ASTNode {
   
     virtual const char* getNodeType();
     virtual bool equals (ASTNode* node);
+    
+    virtual void codegen() = 0;
     
     
 };
@@ -84,6 +134,7 @@ class ExprNode : public ASTNode {
     virtual const char* getNodeType();
     virtual bool equals(ASTNode* node);
     
+    virtual void codegen() = 0;
     
 };
 
@@ -105,6 +156,7 @@ class DeclNode : public StmtNode {
     bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
     
+    virtual void codegen();
     
 };
 
@@ -133,6 +185,7 @@ class IntegerNode : public ExprNode {
     // Visitor Functionality
     void accept(Visitor* v);
     
+    virtual void codegen();
     
 };
 
@@ -154,7 +207,7 @@ class ReturnNode : public StmtNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
-    
+    virtual void codegen();
     
 };
 
@@ -185,12 +238,14 @@ class VarDeclNode : public DeclNode {
     
     void accept(Visitor* v);
     
+    virtual void codegen();
     
 };
 
 // I think I'm going to use this for arguments, not sure yet.
 typedef std::list<VarDeclNode*> VarList;
 
+// Keep basic info about functions
 class PrototypeNode : public ASTNode {
   public:
   
@@ -201,11 +256,12 @@ class PrototypeNode : public ASTNode {
     
     PrototypeNode(const char* ty, const char* na);
     ~PrototypeNode();
-    
 
     void accept(Visitor* v);
     const char* getName();
     const char* getType();
+    
+    virtual void codegen();
     
 };
 
@@ -220,6 +276,7 @@ class FuncDeclNode : public DeclNode {
     
     const char* type;           // return type
     const char* name;           // name of function
+    
     StmtList* statements;       // statements to be executed
     SymbolTable* SymTable;
     //VarList args;             // arguments passed * NOT YET IMPLEMENTED *
@@ -237,6 +294,8 @@ class FuncDeclNode : public DeclNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
+    virtual void codegen();
+    
     
 };
 
@@ -247,8 +306,6 @@ class ProgramNode : public StmtNode {
     
   public:
   
-    
-    
     DeclNode* start;
     ProgramNode();
     ProgramNode(char* src);
@@ -259,7 +316,9 @@ class ProgramNode : public StmtNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
+    void compile();
     
+    virtual void codegen();
 };
 
 

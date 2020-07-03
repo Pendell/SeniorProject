@@ -4,15 +4,42 @@
  * Senior Project Advisor: Dr. Ladd
  */
  
+ 
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
 #include "parser.cpp"
 #include "parser.hpp"
 #include "tokens.cpp"
 #include "./nodes/node.h"
 #include "./visitor/visitor.h"
 
+
+using namespace llvm;
+
 extern FILE* yyin;
 extern FILE* yyout;
-extern llvm::LLVMContext TheContext;
+
+// LLVMContext TheContext;
+// Module* TheModule;
 
 // Global variables I need to track constantly
 ProgramNode* program;       // The root of the AST that bison builds
@@ -79,14 +106,10 @@ void buildAndTestProgram(){
     // d1->rhs = d2;
     
     if(testProgram->equals(program)){
-        printf("We've succeeded! Bison is constructing the proper AST!\n");
+        printf("We've succeeded! Bison is constructing the correct AST!\n");
     } else {
         printf("Comparison failed; Program != testProgram\n");
     }
-    
-    PrintVisitor* pv = new PrintVisitor();
-    
-    testProgram->accept(pv);
     
 }
 
@@ -110,6 +133,8 @@ int main(int argc, char** argv){
     } else { // We're lexing/parsing the file now
         yyin = f;
         
+        //TheModule = std::make_unique<Module>(std::string(argv[1]), TheContext);
+        
         program = new ProgramNode(argv[1]);
         currSymTable = new SymbolTable();
         globalST = new SymbolTable();
@@ -119,23 +144,9 @@ int main(int argc, char** argv){
         
     }
     
-    //buildAndTestProgram();
+    buildAndTestProgram();
     
-    CodeGenVisitor* cgv = new CodeGenVisitor();
-    
-    program->accept(cgv);
-    
-    /*
-    PrintVisitor* pv = new PrintVisitor();
-    ProgramNode* p = new ProgramNode();
-    DeclNode* d = new DeclNode();
-    VarDeclNode* v = new VarDeclNode("int", "x", new IntegerNode(10));
-    
-    p->start = d;
-    d->lhs = v;
-    
-    p->accept(pv);
-    */
+    program->codegen();
     
 }
 

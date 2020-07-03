@@ -1,17 +1,18 @@
-LLVM_VAR = `llvm-config --libs core native --cxxflags --ldflags`
+LLVM_VAR = `llvm-config --system-libs --libs all native --cxxflags --ldflags`
+LLVM_VAR2 = `llvm-config --cxxflags --ldflags --system-libs --libs all`
+# -I ~/llvm-project/llvm/include
 
-
-compiler: parser.hpp parser.cpp tokens.cpp main.o
-	g++ ./build/main.o -lfl -o compiler $(LLVM_VAR) -I ./build/*.o -pthread -ltinfo
+compiler: parser.hpp parser.cpp tokens.cpp main.cpp nodes/node.cpp
+	g++ nodes/node.cpp main.cpp -lfl -o compiler $(LLVM_VAR2) -pthread -ltinfo -std=c++14 -frtti
 
 main.o: nodes.o visitor.o
-	g++ -c main.cpp $(LLVM_VAR) -frtti -o ./build/main.o
+	g++ -c main.cpp $(LLVM_VAR2) -frtti -o ./build/main.o -std=c++14
 
 nodes.o:
-	g++ -c ./nodes/node.cpp $(LLVM_VAR) -frtti -o ./build/nodes.o
+	g++ -c ./nodes/node.cpp $(LLVM_VAR2) -frtti -o ./build/nodes.o
 
 visitor.o:
-	g++ -c ./visitor/visitor.cpp $(LLVM_VAR) -o ./build/visitor.o -std=c++14
+	g++ -c ./visitor/visitor.cpp $(LLVM_VAR2) -o ./build/visitor.o -std=c++14
 
 test:
 	g++ node.h tests/nodeComparisonTest.cpp -o nodeTest
