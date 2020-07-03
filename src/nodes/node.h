@@ -86,6 +86,9 @@ static Module* TheModule;
 // An llvm-implemented symbol table
 static std::map<std::string, Value *> NamedValues;
 
+// Keep a reference of the current basic block.
+static BasicBlock* bbreference;
+
 // ASTNode* LogError(const char* str){
     // fprintf(stderr, "Error: %s\n", str);
     // return nullptr;
@@ -110,7 +113,7 @@ class ASTNode {
     virtual bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
     
-    virtual void codegen() = 0;
+    virtual Value* codegen() = 0;
     
 };
 
@@ -121,7 +124,7 @@ class StmtNode : public ASTNode {
     virtual const char* getNodeType();
     virtual bool equals (ASTNode* node);
     
-    virtual void codegen() = 0;
+    virtual Value* codegen() = 0;
     
     
 };
@@ -134,7 +137,7 @@ class ExprNode : public ASTNode {
     virtual const char* getNodeType();
     virtual bool equals(ASTNode* node);
     
-    virtual void codegen() = 0;
+    virtual Value* codegen() = 0;
     
 };
 
@@ -156,7 +159,7 @@ class DeclNode : public StmtNode {
     bool equals(ASTNode* node);
     virtual void accept(Visitor* v);
     
-    virtual void codegen();
+    virtual Value* codegen();
     
 };
 
@@ -185,7 +188,7 @@ class IntegerNode : public ExprNode {
     // Visitor Functionality
     void accept(Visitor* v);
     
-    virtual void codegen();
+    virtual Value* codegen();
     
 };
 
@@ -207,7 +210,7 @@ class ReturnNode : public StmtNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
-    virtual void codegen();
+    virtual Value* codegen();
     
 };
 
@@ -238,7 +241,7 @@ class VarDeclNode : public DeclNode {
     
     void accept(Visitor* v);
     
-    virtual void codegen();
+    virtual Value* codegen();
     
 };
 
@@ -261,7 +264,7 @@ class PrototypeNode : public ASTNode {
     const char* getName();
     const char* getType();
     
-    virtual void codegen();
+    virtual Value* codegen();
     
 };
 
@@ -294,7 +297,7 @@ class FuncDeclNode : public DeclNode {
     bool equals(ASTNode* node);
     void accept(Visitor* v);
     
-    virtual void codegen();
+    virtual Value* codegen();
     
     
 };
@@ -318,7 +321,7 @@ class ProgramNode : public StmtNode {
     
     void compile();
     
-    virtual void codegen();
+    virtual Value* codegen();
 };
 
 

@@ -90,7 +90,7 @@ void DeclNode::accept(Visitor* v){
     }
 }
 
-void DeclNode::codegen(){
+Value* DeclNode::codegen(){
     
     if(lhs)
         lhs->codegen();
@@ -140,7 +140,7 @@ void IntegerNode::accept(Visitor* v){
 }
 
 // LLVM Codegen method
-void IntegerNode::codegen(){
+Value* IntegerNode::codegen(){
     //return ConstantInt::get(TheContext, APInt(32, value, true));
 }
 
@@ -193,7 +193,7 @@ void ReturnNode::accept(Visitor* v){
         retVal->accept(v);
 }
 
-void ReturnNode::codegen(){
+Value* ReturnNode::codegen(){
     builder.CreateRet(ConstantInt::get(Type::getInt32Ty(TheContext), retVal->getVal()));
 }
 
@@ -274,14 +274,27 @@ void VarDeclNode::accept(Visitor* v){
         value->accept(v);
 }
 
-void VarDeclNode::codegen() {
+Value* VarDeclNode::codegen() {
     
-    // printf("Hmm.... inside vardeclnode stuff.\n");
-    // printf("Varname: %s\n", this->getName());
-    // Value* V = NamedValues[this->getName()];
-    // if(!V)
-        // printf("Unknown Variable Name\n");
-    // return V;
+    Type* ty;
+    Value* val;
+    
+    if (strcmp(getType(), "int") == 0){
+        // Set the Type
+        ty = Type::getInt32Ty(TheContext);
+        // Grab the "typed" data
+        val = ConstantInt::get(Type::getInt32Ty(TheContext), getVal(), true);
+    }
+    
+    // Build the instruction to allocate memory to a temporary location
+    Value* alloc = new AllocaInst(ty, 0, Twine("tmp"), bbreference);
+    
+    // Store the data
+    Value* strptr = new StoreInst(val, alloc, false, bbreference);
+    
+    // Load instruction...? I don't know why I need this and the other one.
+    Value* ldptr = new LoadInst(ty, alloc, Twine(getName()), bbreference);
+    
 }
 
 /***************************** PROTOTYPE NODE ********************************/
@@ -303,7 +316,7 @@ const char* PrototypeNode::getType(){
     return type;
 }
 
-void PrototypeNode::codegen(){
+Value* PrototypeNode::codegen(){
     // std::vector<Type*> Ints(args.size(), Type::getInt32Ty(TheContext));
     
     // //
@@ -435,7 +448,7 @@ void FuncDeclNode::accept(Visitor* v) {
     v->visit(this);
 }
 
-void FuncDeclNode::codegen() {
+Value* FuncDeclNode::codegen() {
     
     FunctionType* ft;
     
@@ -447,6 +460,9 @@ void FuncDeclNode::codegen() {
     
     // Construct the basic block - one entry, one exit. Basic string of instructions
     BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
+    
+    // Store a reference of the current basic block
+    bbreference = bb;
     
     // Tells the builder to insert new instructions to the end of this block
     builder.SetInsertPoint(bb);
@@ -573,7 +589,7 @@ void ProgramNode::compile(){
     TheModule->print(errs(), nullptr);
 }
 
-void ProgramNode::codegen() {
+Value* ProgramNode::codegen() {
     
     TheModule = new Module(std::string(getName()), TheContext);
     if(start)
