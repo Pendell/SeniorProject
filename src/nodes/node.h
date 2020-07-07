@@ -2,7 +2,8 @@
  * SeniorProject - Compiler 
  * Spring 2020
  */
- 
+
+#pragma once
  
  /*  NOTES FROM LADD TALK
     Reference to global symbol table with any symbols that are defined.
@@ -52,27 +53,33 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
  
-#ifndef NODE_H
-#define NODE_H
+// #ifndef NODE_H
+// #define NODE_H
 
 #include <cstring>
 #include <string>
 #include <iostream>
 #include <memory>
+#include <map>
 
 #include <list>   // for statement lists & params, etc...
-#include <map>    // for symbol table
+#include <unordered_map>    // for symbol table
 #include <vector>
 
 #include "../visitor/visitor.h"
 
-
 using namespace llvm;
 
 // Forward Declarations
+class DeclNode;
 class VarDeclNode;
 class Visitor;
 class ASTNode;
+
+typedef std::list<DeclNode*> SymbolTable;
+
+extern SymbolTable* ST; // = new std::unordered_map<char*, DeclNode*>;
+extern SymbolTable* GST; // = new std::unordered_map<char*, DeclNode*>;
 
 // TheContext = object that accesses much of the core llvm data structures
 static LLVMContext TheContext;
@@ -148,12 +155,16 @@ class DeclNode : public StmtNode {
     
   public:
   
+    ExprNode* value = nullptr;
+    
     DeclNode* lhs;
     DeclNode* rhs;
     
     DeclNode();
     ~DeclNode();
     
+    virtual const char* getName();
+    virtual int getVal();
     virtual const char* getNodeType();
     bool isLast();
     bool equals(ASTNode* node);
@@ -168,7 +179,7 @@ class DeclNode : public StmtNode {
 // Typedef the lists and tables, because I'm lazy
 typedef std::list<StmtNode*> StmtList;
 typedef std::list<ExprNode*> ExprList;
-typedef std::list<DeclNode*> SymbolTable;
+// typedef std::list<DeclNode*> SymbolTable;
 
 
 /****************************** EXPRESSIONS **********************************/
@@ -219,6 +230,7 @@ class ReturnNode : public StmtNode {
  * for creating nodes containing variable definitions
  */
 class VarDeclNode : public DeclNode {
+    
   public:
     
     const char* type; 
@@ -427,4 +439,4 @@ class Block : public ExprNode {
 
 
 
-#endif
+//#endif

@@ -3,8 +3,7 @@
  * Spring 2020
  * Senior Project Advisor: Dr. Ladd
  */
- 
- 
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
@@ -26,9 +25,11 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+
 #include "parser.cpp"
 #include "parser.hpp"
 #include "tokens.cpp"
+
 #include "./nodes/node.h"
 #include "./visitor/visitor.h"
 
@@ -38,6 +39,9 @@ using namespace llvm;
 extern FILE* yyin;
 extern FILE* yyout;
 
+extern SymbolTable* ST;
+extern SymbolTable* GST;
+
 // LLVMContext TheContext;
 // Module* TheModule;
 
@@ -45,32 +49,30 @@ extern FILE* yyout;
 ProgramNode* program;       // The root of the AST that bison builds
 ProgramNode* testProgram;   // The AST we're handbuilding to test bison against
 
-SymbolTable* globalST;
-SymbolTable* currSymTable;
 
 void yyerror(const char* e);
-bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type);
+//bool checkAndAdd(SymbolTable* SymTable, std::string name, std::string type);
 
 extern int yyparse(void);
 
-bool checkAndAdd(SymbolTable* symTable, VarDeclNode* node){
+// bool checkAndAdd(SymbolTable* symTable, VarDeclNode* node){
     
-    // Check to see if the symbol already exists in the symbol table 
-    SymbolTable::iterator it = symTable->begin();
-    while(it != symTable->end()){
+    // // Check to see if the symbol already exists in the symbol table 
+    // SymbolTable::iterator it = symTable->begin();
+    // while(it != symTable->end()){
         
-        VarDeclNode* node_casted = dynamic_cast<VarDeclNode*>(*it);
+        // VarDeclNode* node_casted = dynamic_cast<VarDeclNode*>(*it);
         
-        if(strcmp(node_casted->getName(), node->getName()))
-            return false;
-        ++it;
-    }
+        // if(strcmp(node_casted->getName(), node->getName()))
+            // return false;
+        // ++it;
+    // }
     
-    symTable->push_back(node);
-    return true;
+    // symTable->push_back(node);
+    // return true;
         
     
-}
+// }
 
 /* buildAndTestProgram()
  * Constructs a quick AST that should be identical to the one  that Bison
@@ -101,7 +103,7 @@ void buildAndTestProgram(){
     const char* type = "int";
     const char* name = "main";
     
-    FuncDeclNode* f1 = new FuncDeclNode(type, name, testStmtList, currSymTable);
+    FuncDeclNode* f1 = new FuncDeclNode(type, name, testStmtList, ST);
     d1->lhs = f1;
     // d1->rhs = d2;
     
@@ -117,8 +119,6 @@ void yyerror(const char* s) {
     printf("Help! Error! Help! --> %s\n", s);
 }
 
-
-
 int main(int argc, char** argv){
     
     yydebug = 1;
@@ -133,20 +133,25 @@ int main(int argc, char** argv){
     } else { // We're lexing/parsing the file now
         yyin = f;
         
-        //TheModule = std::make_unique<Module>(std::string(argv[1]), TheContext);
+        // TheModule = std::make_unique<Module>(std::string(argv[1]), TheContext);
         
         program = new ProgramNode(argv[1]);
-        currSymTable = new SymbolTable();
-        globalST = new SymbolTable();
         
-        yyparse();
+        if(yyparse() == 0) {
+            
+            // buildAndTestProgram();
+            program->codegen();
+            
+        }
+        
         fclose(yyin);
+        
+        
         
     }
     
-    buildAndTestProgram();
+  
     
-    program->codegen();
     
 }
 

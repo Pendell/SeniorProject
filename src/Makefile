@@ -2,8 +2,8 @@ LLVM_VAR = `llvm-config --system-libs --libs all native --cxxflags --ldflags`
 LLVM_VAR2 = `llvm-config --cxxflags --ldflags --system-libs --libs all`
 # -I ~/llvm-project/llvm/include
 
-compiler: parser.hpp parser.cpp tokens.cpp main.cpp nodes/node.cpp
-	g++ nodes/node.cpp main.cpp -lfl -o compiler $(LLVM_VAR2) -pthread -ltinfo -std=c++14 -frtti
+compiler: parser.hpp parser.cpp tokens.cpp nodes.o main.o
+	g++ build/*.o -lfl -o compiler $(LLVM_VAR2) -pthread -ltinfo -std=c++14 -frtti
 
 main.o: nodes.o visitor.o
 	g++ -c main.cpp $(LLVM_VAR2) -frtti -o ./build/main.o -std=c++14

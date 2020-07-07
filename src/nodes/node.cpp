@@ -2,6 +2,10 @@
 
 using namespace llvm;
 
+SymbolTable* ST = new SymbolTable();
+SymbolTable* GST = new SymbolTable();
+
+
 /******************************* AST NODE ************************************/
 const char* ASTNode::getNodeType(){
     return "ASTNode";
@@ -44,6 +48,10 @@ DeclNode::DeclNode() {
 }
 DeclNode::~DeclNode() {}
 
+const char* DeclNode::getName() {
+    return NULL;
+}
+
 const char* DeclNode::getNodeType(){
     return "DeclNode";
 }
@@ -72,6 +80,10 @@ bool DeclNode::equals(ASTNode* node){
     }
 }
 
+int DeclNode::getVal(){
+    return 1000;
+}
+
 void DeclNode::accept(Visitor* v){
     printf("Inside DeclNode accept().\n");
     
@@ -92,12 +104,17 @@ void DeclNode::accept(Visitor* v){
 
 Value* DeclNode::codegen(){
     
-    if(lhs)
+    printf("Decl Segfaulting here...\n");
+    
+    if(lhs) {
+        printf("LHS Codegen.\n");
         lhs->codegen();
-    
-    if(rhs)
+        printf("Not breaking in LHS\n");
+    }
+    if(rhs) {
+        printf("RHS Codegen.\n");
         rhs->codegen();
-    
+    }
 }
 
 
@@ -194,7 +211,9 @@ void ReturnNode::accept(Visitor* v){
 }
 
 Value* ReturnNode::codegen(){
+    printf("RetVal Segfaulting here...\n");
     builder.CreateRet(ConstantInt::get(Type::getInt32Ty(TheContext), retVal->getVal()));
+    printf("!RetVal Segfaulting here...\n");
 }
 
 /***************************** VARDECL NODE **********************************/
@@ -204,7 +223,8 @@ VarDeclNode::VarDeclNode(const char* ty, const char* na) : type(ty), name(na) {
 }
 
 VarDeclNode::VarDeclNode(const char* ty, const char* na, ExprNode* va) :
-                        type(ty), name(na), value(va) { }
+                        type(ty), name(na), value(va) { 
+}
 
 VarDeclNode::~VarDeclNode(){
     
@@ -276,21 +296,27 @@ void VarDeclNode::accept(Visitor* v){
 
 Value* VarDeclNode::codegen() {
     
+    // Check to see if this variable is defined. It will change the way we
+    // generate it's code (We can't store anything to it if it's not defined...
+    bool isDefined = (value != nullptr);
+    
     Type* ty;
     Value* val;
     
     if (strcmp(getType(), "int") == 0){
         // Set the Type
         ty = Type::getInt32Ty(TheContext);
-        // Grab the "typed" data
-        val = ConstantInt::get(Type::getInt32Ty(TheContext), getVal(), true);
+        // Grab the "typed" data IF it's defined
+        if(isDefined)
+            val = ConstantInt::get(Type::getInt32Ty(TheContext), getVal(), true);
     }
     
     // Build the instruction to allocate memory to a temporary location
     Value* alloc = new AllocaInst(ty, 0, Twine("tmp"), bbreference);
     
-    // Store the data
-    Value* strptr = new StoreInst(val, alloc, false, bbreference);
+    // Store the data (again, if it's defined.
+    if(isDefined)
+        Value* strptr = new StoreInst(val, alloc, false, bbreference);
     
     // Load instruction...? I don't know why I need this and the other one.
     Value* ldptr = new LoadInst(ty, alloc, Twine(getName()), bbreference);
@@ -591,10 +617,14 @@ void ProgramNode::compile(){
 
 Value* ProgramNode::codegen() {
     
+    // We're at the top of the AST -> get a new module to build.
     TheModule = new Module(std::string(getName()), TheContext);
+    
+    // If we're not the only node, call codegen on the rest of the tree
     if(start)
         start->codegen();
     
+    // Once the module is built, compile llvm IR to object code.
     compile();
 }
 

@@ -1,15 +1,12 @@
-#ifndef VISITOR_H
-#define VISITOR_H
+#pragma once
+//#ifndef VISITOR_H
+//#define VISITOR_H
 
 #include <iostream>
 #include <vector>
 #include <memory>
 
 #include "../nodes/node.h"
-
-
-
-
 
 // Forward Declarations
 class ASTNode;
@@ -82,4 +79,4 @@ class CodeGenVisitor : public Visitor {
 
 };
 
-#endif
+//#endif

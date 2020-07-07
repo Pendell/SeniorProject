@@ -16,11 +16,14 @@
     #include <iostream>
     #include <stdio.h>
     #include <list>    // For the symbol table list
+    #include <unordered_map>
+    #include <utility>
     
     extern void yyerror(const char* e);
     extern FILE* yyin;
     extern int yyparse();
     extern int yylex();
+    
 
     #define YYDEBUG 1
 
@@ -28,11 +31,12 @@
     
     // These are defined in main.cpp
     extern ProgramNode* program; /* the root of the created AST */
-    extern SymbolTable* globalST;
-    extern SymbolTable* currSymTable;
+    // extern SymbolTable* globalST;
+    // extern SymbolTable* currSymTable;
     
-    std::list<SymbolTable*>* SymList; // A list of Symbol Tables
-    
+    // Symbol Tables -- Defined in node.h
+    extern SymbolTable* GST;
+    extern SymbolTable* ST;
     
     
 %} 
@@ -54,6 +58,7 @@
     
     DeclNode* decl;
     StmtList* stmtList;
+    ReturnNode* rtrn;
     
     // Nodes
     ExprNode* expr;
@@ -81,11 +86,12 @@
 * of the grammar section.                                                    *  
 *****************************************************************************/
 %type<expr>     expr constant
-%type<stmt>     stmt returnStmt  varDecl funcDecl
+%type<stmt>     stmt
 %type<stmtList> stmtList 
 %type<string>   typeSpecifier
-%type<decl>     declList declaration
+%type<decl>     declList declaration varDecl funcDecl
 %type<program>  program
+%type<rtrn>     returnStmt
 
 %token<token>   VOID "void"  CHAR "char" 
 %token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
@@ -157,7 +163,7 @@ funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" {
                     printf("FuncDeclNode breaking?\n\n");
                     const char* type = "int";
                     const char* name = "main";
-                    $$ = new FuncDeclNode(type, name, currStmtList, currSymTable);
+                    $$ = new FuncDeclNode(type, name, currStmtList, ST);
                     currStmtList = new StmtList(); // Reset stmtlist
                     printf("Nope.\n");
                 }
@@ -176,13 +182,129 @@ stmt:           varDecl
 ;
 
 varDecl:        typeSpecifier ID "=" expr ";" {
+                    printf("\nExpression\n\n");
+                    
+                    const char* name = $2->c_str();
+                    
+                    // Check the symbol table for the variable
+                    SymbolTable::iterator it = ST->begin();
+                    
+                    while(it != ST->end()){
+                        printf("\n\n %s == %s ?\n", (*it)->getName(), name);
+                        if(strcmp((*it)->getName(), name) == 0) {
+                            printf("Yep! Throwing error.\n");
+                            printf("Variable %s already declared\n", name);
+                            return 1;
+                        } else {
+                            printf("Nope... continuing parse.\n\n");
+                        }
+                        ++it;
+                    }
+                    
                     $$ = new VarDeclNode($1->c_str(), $2->c_str(), $4);
+                    ST->push_back($$); 
+                } 
+                
+|               typeSpecifier ID ";" {
+                    printf("\nNullptr\n\n");
+                    
+                    
+                    const char* name = $2->c_str();
+                    
+                    // Check the symbol table for the variable
+                    SymbolTable::iterator it = ST->begin();
+                    
+                    while(it != ST->end()){
+                        printf("\n\n %s == %s ?\n", (*it)->getName(), name);
+                        if(strcmp((*it)->getName(), name) == 0) {
+                            printf("Yep! Throwing error.\n");
+                            printf("Variable %s already declared\n", name);
+                            return 1;
+                        } else {
+                            printf("Nope... continuing parse.\n\n");
+                        }
+                        ++it;
+                    }
+                    
+                    $$ = new VarDeclNode($1->c_str(), $2->c_str());
+                    ST->push_back($$); 
                 }
                 
-|               typeSpecifier ID ";" { }
+|               typeSpecifier ID "=" ID ";" {
+                    
+                    printf("\n\nVariable assigned to another variable.\n");
+                    
+                    
+                    const char* name = $2->c_str();
+                    const char* name2 = $4->c_str();
+                    
+                    printf("%s being assigned %s\n", name, name2);
+                    
+                    // Check the symbol table for the variable
+                    SymbolTable::iterator it = ST->begin();
+                    
+                    // Check to make sure the variable doesn't already exist
+                    while (it != ST->end()){
+                        printf("Inside first while loop.\n");
+                        if(strcmp((*it)->getName(), name) == 0){
+                            printf("Error: Variable %s already declared.\n", name);
+                            return 1;
+                        }
+                        ++it;
+                    }
+                    
+                    // If we're here, we've ensured that the variable hasn't been declared yet
+                    // Now we search for the second variable, return an error if we can't find it.
+                    it = ST->begin();
+                    bool found = false;
+                    while(it != ST->end()){
+                        printf("Inside second while loop.\n");
+                        if(strcmp((*it)->getName(), name2) == 0) {
+                            VarDeclNode* node_casted = dynamic_cast<VarDeclNode*>(*it);
+                            $$ = new VarDeclNode($1->c_str(), name, node_casted->value);
+                            ST->push_back($$);
+                            found = true;
+                            break;
+                        }
+                        ++it;
+                    }
+                    if(!found){
+                        printf("Error: Variable %s is undefined.\n", name2);
+                        return 1;
+                    }
+                }
 ;
 
 returnStmt:     "return" expr ";"{ $$ = new ReturnNode($2); }
+|               "return" ID ";"{
+                    // Check the symbol table for the variable
+                    SymbolTable::iterator it = ST->begin();
+                    const char* name = $2->c_str();
+                    
+                    printf("Looking for %s\n", name);
+                    while(it != ST->end()){
+                        printf("\n\n %s == %s ?\n", (*it)->getName(), name);
+                        
+                        if(strcmp((*it)->getName(), name) == 0) {
+                            VarDeclNode* var = dynamic_cast<VarDeclNode*>(*it);
+                            
+                            if (var->value == nullptr) {
+                                printf("Error: Variable '%s' not defined.\n", var->getName());
+                                return 1;
+                            }
+                                
+                            $$ = new ReturnNode(var->value);
+                            printf("About to segfault...\n");
+                            printf("\n\nReturn Value: %d\n\n\n", var->getVal());
+                            break;
+                        }
+                        ++it;
+                    }
+                    if(it == ST->end()){
+                        printf("Error: Variable '%s' not declared.\n", name);
+                        return 1;
+                    }
+                }
 ;
 
 expr:           constant
