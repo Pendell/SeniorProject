@@ -1,5 +1,17 @@
 #include "node.h"
 
+/* Fun Stuff...
+Black: \u001b[30m
+Red: \u001b[31m
+Green: \u001b[32m
+Yellow: \u001b[33m
+Blue: \u001b[34m
+Magenta: \u001b[35m
+Cyan: \u001b[36m
+White: \u001b[37m
+
+Reset:  \u001b[0m
+*/
 using namespace llvm;
 
 SymbolTable* ST = new SymbolTable();
@@ -158,20 +170,61 @@ void IntegerNode::accept(Visitor* v){
 
 // LLVM Codegen method
 Value* IntegerNode::codegen(){
-    //return ConstantInt::get(TheContext, APInt(32, value, true));
+    return ConstantInt::get(TheContext, APInt(32, value, true));
+}
+
+/***************************** BinOp NODE ************************************/
+BinaryOpNode::BinaryOpNode(const char op, ExprNode* lh, ExprNode* rh) :
+        op(op), lhs(lh), rhs(rh) {
+            
+      std::cout << std::endl << std::endl;
+      std::cout << "Creating a BinaryOpNode!" << std::endl;
+      std::cout << "The operation is : " << op;
+      printf("This should get printed out.\n");
+      printf("It should segfault here...");
+      printf("Nope... it did not.\n");
+      
+      printf("Right here boys.\n");
+      printf("It segfaulted after eval()\n");
+}
+
+BinaryOpNode::~BinaryOpNode(){}
+const char* BinaryOpNode::getNodeType(){
+    return "BinaryOpNode";
+}
+
+
+Value* BinaryOpNode::codegen(){
+    switch(op){
+        case '+':
+            return builder.CreateAdd(lhs->codegen(), rhs->codegen());
+        case '-':
+            return builder.CreateSub(lhs->codegen(), rhs->codegen());
+        case '*':
+            return builder.CreateMul(lhs->codegen(), rhs->codegen());
+        case '/':
+            return builder.CreateUDiv(lhs->codegen(), rhs->codegen());
+    }
+    
+    return nullptr;
+    
 }
 
 /***************************** RETURN NODE ***********************************/
 // Constructors
-ReturnNode::ReturnNode() : retVal(nullptr) {}
-ReturnNode::ReturnNode(ExprNode* rv) : retVal(rv) {}
+ReturnNode::ReturnNode() : value(nullptr) {}
+ReturnNode::ReturnNode(ExprNode* rv) : value(rv) {
+    printf("Constructing ReturnNode that evaluates to: %d", value->getVal());
+    
+    
+}
 
 const char* ReturnNode::getNodeType(){
     return "ReturnNode";
 }
 
 int ReturnNode::getVal(){
-    return retVal->getVal();
+    return value->getVal();
 }
 
 
@@ -183,13 +236,13 @@ bool ReturnNode::equals(ASTNode* node){
     else {
         ReturnNode* node_casted = dynamic_cast<ReturnNode*>(node);
         // Check Both Null
-        if(!retVal && !node_casted->retVal) {
+        if(!value && !node_casted->value) {
             return true;
             
         // Check Both not null, if so, compare children
-        } else if (retVal && node_casted->retVal) {
+        } else if (value && node_casted->value) {
             
-            if (retVal->equals(node_casted->retVal)){
+            if (value->equals(node_casted->value)){
                 printf("Return Nodes Equal. Returning true\n");
                 return true;
             } else {
@@ -206,14 +259,32 @@ bool ReturnNode::equals(ASTNode* node){
 
 void ReturnNode::accept(Visitor* v){
     v->visit(this);
-    if (retVal)
-        retVal->accept(v);
+    if (value)
+        value->accept(v);
 }
 
 Value* ReturnNode::codegen(){
-    printf("RetVal Segfaulting here...\n");
-    builder.CreateRet(ConstantInt::get(Type::getInt32Ty(TheContext), retVal->getVal()));
-    printf("!RetVal Segfaulting here...\n");
+    
+    printf("\u001b[32mTHIS SHOULD  PRINT OUT!!!\u001b[0m");
+    
+    Value* retptr;
+    
+    if(strcmp(value->getNodeType(), "VarDeclNode") == 0){
+        
+        VarDeclNode* value_casted = dynamic_cast<VarDeclNode*>(value);
+        printf("Returning a variable\n");
+        retptr = builder.CreateLoad(NamedValues[std::string(value_casted->getName())]);
+        
+    } else if (strcmp(value->getNodeType(), "IntegerNode") == 0) {
+        IntegerNode* value_casted = dynamic_cast<IntegerNode*>(value);
+        printf("Returning an IntConstant\n");
+        retptr = ConstantInt::get(TheContext, APInt(32, value->getVal()));
+    } else {
+        printf("Codegen'ing something else!\n");
+        retptr = value->codegen();
+    }
+    printf("\u001b[31mTHIS SHOULD NOT PRINT OUT!!!\u001b[0m");
+    return builder.CreateRet(retptr);
 }
 
 /***************************** VARDECL NODE **********************************/
@@ -229,6 +300,7 @@ VarDeclNode::VarDeclNode(const char* ty, const char* na, ExprNode* va) :
 VarDeclNode::~VarDeclNode(){
     
 }
+
 // Returns the typing of the data stored -- NOT the type of the node
 const char* VarDeclNode::getType(){
     return type;
@@ -296,30 +368,16 @@ void VarDeclNode::accept(Visitor* v){
 
 Value* VarDeclNode::codegen() {
     
-    // Check to see if this variable is defined. It will change the way we
-    // generate it's code (We can't store anything to it if it's not defined...
-    bool isDefined = (value != nullptr);
+    std::string name(getName());
+    return builder.CreateStore(value->codegen(), NamedValues[name]);
     
-    Type* ty;
-    Value* val;
+}
+
+AllocaInst* VarDeclNode::initialize() {
     
-    if (strcmp(getType(), "int") == 0){
-        // Set the Type
-        ty = Type::getInt32Ty(TheContext);
-        // Grab the "typed" data IF it's defined
-        if(isDefined)
-            val = ConstantInt::get(Type::getInt32Ty(TheContext), getVal(), true);
-    }
-    
-    // Build the instruction to allocate memory to a temporary location
-    Value* alloc = new AllocaInst(ty, 0, Twine("tmp"), bbreference);
-    
-    // Store the data (again, if it's defined.
-    if(isDefined)
-        Value* strptr = new StoreInst(val, alloc, false, bbreference);
-    
-    // Load instruction...? I don't know why I need this and the other one.
-    Value* ldptr = new LoadInst(ty, alloc, Twine(getName()), bbreference);
+    std::string name(getName());
+    init = true;
+    return builder.CreateAlloca(Type::getInt32Ty(TheContext), 0, name.c_str());
     
 }
 
@@ -362,7 +420,14 @@ Value* PrototypeNode::codegen(){
 
 /***************************** FUNCDECL NODE *********************************/
 FuncDeclNode::FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st) : type(ty), name(na), statements(stl), SymTable(st){
-    // prototype = new PrototypeNode(ty, na);
+    StmtList::iterator it = stl->begin();
+    
+    int count = 0;
+    while(it != stl->end()){
+        printf("Statement at position %d: %s\n", count, (*it)->getNodeType());
+        ++it;
+        count++;
+    }
 }
 
 FuncDeclNode::~FuncDeclNode() {
@@ -478,12 +543,20 @@ Value* FuncDeclNode::codegen() {
     
     FunctionType* ft;
     
+    // Iterates through the symbol table and allocates space for each symbol in memory
+    
+    printf("Inside FuncDeclNode codegen()\n");
+    
     if (strcmp(getType(), "int") == 0){
         ft = FunctionType::get(Type::getInt32Ty(TheContext), false);
     }
     
-    Function* f = Function::Create(ft, Function::ExternalLinkage, StringRef(getName()), TheModule);
+    printf("1\n");
     
+    
+    
+    Function* f = Function::Create(ft, Function::ExternalLinkage, StringRef(getName()), TheModule);
+   
     // Construct the basic block - one entry, one exit. Basic string of instructions
     BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
     
@@ -493,17 +566,57 @@ Value* FuncDeclNode::codegen() {
     // Tells the builder to insert new instructions to the end of this block
     builder.SetInsertPoint(bb);
     
+    
+    SymbolTable::iterator its = SymTable->begin();
+    
+    // Allocate memory for all local variables, and assign their allocation location
+    // to the NamedValues map. This will give us a point of reference should we need
+    // to mutate a variable. That is, if we need to change the variable, we change
+    // what is stored at the allocation location.
+    while(its != SymTable->end()) {
+        printf("Inside while loop\n");
+        std::string name ((*its)->getName());
+        std::cout << "Created name " << name << std::endl;
+        
+        VarDeclNode* var = dynamic_cast<VarDeclNode*>(*its);
+        NamedValues[name] = var->initialize();
+        ++its;
+    }
+    
+    printf("4\n");
+    
+
+    
     // Iterate through statements...
     StmtList::iterator it = statements->begin();
     
     int count = 1;
+    
     while(it != statements->end()){
         (*it)->codegen();
         ++it;
         ++count;
     }
     
+    
+    
+    
+    
+    
     verifyFunction(*f, &errs());
+    printf("5\n");
+}
+
+AllocaInst* FuncDeclNode::createEntryBlockAlloca(Function* f, const std::string& name) {
+    
+    printf("Inside entry block alloca\n");
+    
+    // Create a builder object to place things at the beginning of a function block
+    IRBuilder<> tmpbuilder(&f->getEntryBlock(), f->getEntryBlock().begin());
+    
+    // Return the alloca instruction
+    unsigned int addr = 0;
+    return tmpbuilder.CreateAlloca(Type::getInt32Ty(TheContext), 0, name.c_str());
     
 }
 
@@ -522,9 +635,10 @@ const char* ProgramNode::getNodeType() {
 
 bool ProgramNode::equals(ASTNode* node) {
     
-    if (getNodeType() != node->getNodeType())
+    if (getNodeType() != node->getNodeType()) {
         return false;
-    else {
+    } else {
+        
         ProgramNode* node_casted = dynamic_cast<ProgramNode*>(node);
         
         if (start == nullptr ^ node_casted->start == nullptr)
@@ -547,6 +661,8 @@ void ProgramNode::accept(Visitor* v) {
 }
 
 void ProgramNode::compile(){
+    
+    printf("Starting compilation...\n");
     
     auto TargetTriple = sys::getDefaultTargetTriple();
     InitializeAllTargetInfos();
@@ -623,6 +739,22 @@ Value* ProgramNode::codegen() {
     // If we're not the only node, call codegen on the rest of the tree
     if(start)
         start->codegen();
+    
+    for (auto &funct : *TheModule) {
+        for (auto &basic_block : funct) {
+            StringRef bbName(basic_block.getName());
+            errs() << "BasicBlock: "  << bbName << "\n";
+            Instruction* i = basic_block.getTerminator();
+            if(!i) {
+                printf("No termination.\n");
+                builder.CreateRet(ConstantInt::get(TheContext, APInt(32, 1)));
+            }
+        }
+    }
+
+    
+    
+    
     
     // Once the module is built, compile llvm IR to object code.
     compile();

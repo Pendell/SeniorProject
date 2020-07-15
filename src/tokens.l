@@ -31,7 +31,10 @@
 %%
 
 "="                             { return TOKEN(EQUAL);  }
-"+"                             { return TOKEN(PLUS);   }
+"+"                             { return TOKEN(ADD);   }
+"-"                             { return TOKEN(SUB);   }
+"*"                             { return TOKEN(MUL);   }
+"/"                             { return TOKEN(DIV);   }                
 
 "("                             { return TOKEN(LPAREN);   }
 ")"                             { return TOKEN(RPAREN);   }

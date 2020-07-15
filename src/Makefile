@@ -9,7 +9,7 @@ main.o: nodes.o visitor.o
 	g++ -c main.cpp $(LLVM_VAR2) -frtti -o ./build/main.o -std=c++14
 
 nodes.o:
-	g++ -c ./nodes/node.cpp $(LLVM_VAR2) -frtti -o ./build/nodes.o
+	g++ -c ./nodes/unity.cpp $(LLVM_VAR2) -frtti -o ./build/nodes.o
 
 visitor.o:
 	g++ -c ./visitor/visitor.cpp $(LLVM_VAR2) -o ./build/visitor.o -std=c++14

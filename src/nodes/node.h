@@ -91,10 +91,11 @@ static IRBuilder<> builder(TheContext);
 static Module* TheModule;
 
 // An llvm-implemented symbol table
-static std::map<std::string, Value *> NamedValues;
+static std::map<std::string, AllocaInst*> NamedValues;
 
 // Keep a reference of the current basic block.
 static BasicBlock* bbreference;
+
 
 // ASTNode* LogError(const char* str){
     // fprintf(stderr, "Error: %s\n", str);
@@ -124,17 +125,7 @@ class ASTNode {
     
 };
 
-class StmtNode : public ASTNode {
-    
-  public:
-  
-    virtual const char* getNodeType();
-    virtual bool equals (ASTNode* node);
-    
-    virtual Value* codegen() = 0;
-    
-    
-};
+
 
 class ExprNode : public ASTNode {
     
@@ -145,6 +136,18 @@ class ExprNode : public ASTNode {
     virtual bool equals(ASTNode* node);
     
     virtual Value* codegen() = 0;
+    
+};
+
+class StmtNode : public ExprNode {
+    
+  public:
+  
+    virtual const char* getNodeType();
+    virtual bool equals (ASTNode* node);
+    
+    virtual Value* codegen() = 0;
+    
     
 };
 
@@ -203,7 +206,45 @@ class IntegerNode : public ExprNode {
     
 };
 
+/* BinaryOpNode
+ * A node created for binary operations (+, -, *, /, etc...)
+ */
+class BinaryOpNode : public ExprNode {
+  public:
+  
+    const char op;  // Operation
+    
+    ExprNode* lhs;  // left-hand side
+    ExprNode* rhs;  // right-hand side
+    
+    BinaryOpNode(const char op, ExprNode* lh, ExprNode* rh);
+    ~BinaryOpNode();
+    
+    const char* getNodeType();
+    
+    Value* codegen();
+    
+};
+
 /****************************** STATEMENTS ***********************************/
+
+class MutateVarNode: public StmtNode {
+    
+  public:
+  
+    VarDeclNode* lhs;
+    ExprNode* rhs;
+    
+    MutateVarNode(VarDeclNode* v, ExprNode* val);
+    ~MutateVarNode();
+    
+    
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+};
+
+
 /* ReturnNode
  * for returning expressions
  */
@@ -211,7 +252,7 @@ class ReturnNode : public StmtNode {
     
   public:
   
-    ExprNode* retVal;
+    ExprNode* value;
     
     ReturnNode();
     ReturnNode(ExprNode* rv);
@@ -225,17 +266,34 @@ class ReturnNode : public StmtNode {
     
 };
 
+class LoadVarNode : public ExprNode {
+  public:
+    
+    const char* name;
+    
+    LoadVarNode(const char* na);
+    ~LoadVarNode();
+    
+    const char* getNodeType();
+    const char* getName();
+    virtual Value* codegen();
+
+
+};
 
 /* VariableDeclarationNode
- * for creating nodes containing variable definitions
+ * for creating nodes containing variable declarations
  */
 class VarDeclNode : public DeclNode {
+    
+    bool init = false;
     
   public:
     
     const char* type; 
     const char* name;
-    ExprNode* value;
+    
+    ExprNode* value = nullptr;
     
     VarDeclNode(const char* ty, const char* na);
     VarDeclNode(const char* ty, const char* na, ExprNode* va);
@@ -253,9 +311,26 @@ class VarDeclNode : public DeclNode {
     
     void accept(Visitor* v);
     
+    virtual AllocaInst* initialize();
     virtual Value* codegen();
     
 };
+
+// class VarNode : StmtNode {
+    
+    // VarDeclNode* parent;
+    
+  // public:
+  
+    // const char* name;
+    // const char* type;
+    // AllocaInst* alloc;
+    
+    // VarNode();
+    // ~VarNode();
+    
+    // virtual Value* codegen();
+// };
 
 // I think I'm going to use this for arguments, not sure yet.
 typedef std::list<VarDeclNode*> VarList;
@@ -311,7 +386,7 @@ class FuncDeclNode : public DeclNode {
     
     virtual Value* codegen();
     
-    
+    AllocaInst* createEntryBlockAlloca(Function* f, const std::string& name);
 };
 
 /******************************* PROGRAM *************************************/
@@ -340,30 +415,7 @@ class ProgramNode : public StmtNode {
 /*****************************Not yet Implemented*****************************/
 // Or broken... needs to get implemented later
 
-/* BinaryOpNode
- * A node created for binary operations (+, -, *, /, etc...)
- *
-class BinaryOpNode : public ExprNode {
-  public:
-    int op;         // Operation
-    ExprNode& lhs;  // left-hand side
-    ExprNode& rhs;  // right-hand side
-    
-    BinaryOpNode(int op, ExprNode& lh, ExprNode& rh) :
-        op(op), lhs(lh), rhs(rh) {
-            
-      std::cout << std::endl << std::endl;
-      std::cout << "Creating a BinaryOpNode!" << std::endl;
-      std::cout << "The operation is : " << op;
-      std::cout << std::endl << std::endl;
-    }
-    
-    const char* getNodeType(){
-        return "BinaryOpNode";
-    }
-    
-    //void accept(Visitor* visitor){ }
-};
+
 
 
 /* FunctionCallNode
