@@ -4,31 +4,7 @@
  */
 
 #pragma once
- 
- /*  NOTES FROM LADD TALK
-    Reference to global symbol table with any symbols that are defined.
-    FunctionDeclarationList and VariableDeclarationList, potentially.
-    
-    Program (the root) only has one child, and that child is only
-    declarationList.
-    
-    lhs side - (symbol decl list) has 3 production on the right hand side;
-        %empty
-        funcDecl declList
-        varDecl declList
-        
-    This is how a block is used:
-    
-    if() {
-        
-        *BLOCK*
-        
-    };
-    
-    The *true* portion of an if conditional goes to a statement node which could
-    be a block.
-    
- */
+
 
 // LLVM goodies 
 #include "llvm/ADT/APFloat.h"
@@ -62,24 +38,89 @@
 #include <memory>
 #include <map>
 
-#include <list>   // for statement lists & params, etc...
+#include <list>             // for statement lists & params, etc...
 #include <unordered_map>    // for symbol table
 #include <vector>
 
-#include "../visitor/visitor.h"
+// #include "../visitor/visitor.h"
 
 using namespace llvm;
 
 // Forward Declarations
 class DeclNode;
 class VarDeclNode;
-class Visitor;
 class ASTNode;
 
-typedef std::list<DeclNode*> SymbolTable;
+class SymbolTable {
+    
+    SymbolTable* parent;
+    
+    SymbolTable(SymbolTable* p);
+    ~SymbolTable();
+    
+    // Returns the parent of this symbol table
+    SymbolTable* getParent();
+    
+};
 
-extern SymbolTable* ST; // = new std::unordered_map<char*, DeclNode*>;
-extern SymbolTable* GST; // = new std::unordered_map<char*, DeclNode*>;
+class GlobalSymbolTable : public SymbolTable {
+    
+  private:
+    std::vector<FuncDeclNode*> functions;
+    std::vector<VarDeclNode*> globalvars;
+    
+  public:
+    
+    GlobalSymbolTable();
+    ~GlobalSymbolTable();
+    
+    int size_funcs();
+    int size_vars();
+    
+
+    // Finds any entities with the name 'n' in either funcs or gvars.
+    // returns the index if found, -1 if not found.
+    int func_lookup(std::string n);
+    int var_lookup(std::string n);
+    
+    // Tries to add the DeclNode* to the respective symbol table.
+    // returns true if added successfully, false otherwise.
+    bool add(FuncDeclNode* f);
+    bool add(VarDeclNode* v);
+    
+    // Tries to grab the function or variable with the name 'n'
+    // returns the DeclNode* if found, nullptr o/w.
+    FuncDeclNode* get_func(std::string n);
+    VarDeclNode* get_gvar(std::string n);
+    
+    bool isEqual(GlobalSymbolTable* o); // Not yet implemented
+    
+};
+
+class ScopedSymbolTable : public SymbolTable {
+    
+  private:
+    std::vector<VarDeclNode*> vars;
+    
+  public:
+    
+    ScopedSymbolTable(SymbolTable* p);
+    ~ScopedSymbolTable();
+  
+    int size();
+    
+    int lookup(VarDeclNode* v);
+    
+    void add();
+    
+    VarDeclNode* get(std::string n);
+    
+    bool isEqual(ScopedSymbolTable* o);
+    
+};
+
+extern SymbolTable* ST;   
+extern SymbolTable* GST;   
 
 // TheContext = object that accesses much of the core llvm data structures
 static LLVMContext TheContext;
@@ -95,6 +136,8 @@ static std::map<std::string, AllocaInst*> NamedValues;
 
 // Keep a reference of the current basic block.
 static BasicBlock* bbreference;
+
+static Function* fref;
 
 
 // ASTNode* LogError(const char* str){
@@ -119,13 +162,11 @@ class ASTNode {
   
     virtual const char* getNodeType();
     virtual bool equals(ASTNode* node);
-    virtual void accept(Visitor* v);
+    //virtual void accept(Visitor* v);
     
     virtual Value* codegen() = 0;
     
 };
-
-
 
 class ExprNode : public ASTNode {
     
@@ -171,7 +212,7 @@ class DeclNode : public StmtNode {
     virtual const char* getNodeType();
     bool isLast();
     bool equals(ASTNode* node);
-    virtual void accept(Visitor* v);
+    //virtual void accept(Visitor* v);
     
     virtual Value* codegen();
     
@@ -181,7 +222,7 @@ class DeclNode : public StmtNode {
 
 // Typedef the lists and tables, because I'm lazy
 typedef std::list<StmtNode*> StmtList;
-typedef std::list<ExprNode*> ExprList;
+// typedef std::list<ExprNode*> ExprList;
 // typedef std::list<DeclNode*> SymbolTable;
 
 
@@ -200,16 +241,49 @@ class IntegerNode : public ExprNode {
     bool equals(ASTNode* node);
     
     // Visitor Functionality
-    void accept(Visitor* v);
+    //void accept(Visitor* v);
     
     virtual Value* codegen();
     
+};
+
+class CharacterNode : public ExprNode {
+  
+  public:
+    
+    // Note: CharacterNode stores the integer representation
+    //       of the desired character.
+    int value;
+    
+    CharacterNode(int v);
+    ~CharacterNode();
+    
+    int getVal();
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+
+};
+
+class UnaryOpNode : public ExprNode {
+  public:
+    const char op;
+    const char* inc; // when to increment
+    ExprNode* lhs;
+    
+    UnaryOpNode(const char o, ExprNode* l, const char* i);
+    ~UnaryOpNode();
+    
+    const char* getNodeType();
+    
+    virtual Value* codegen();
 };
 
 /* BinaryOpNode
  * A node created for binary operations (+, -, *, /, etc...)
  */
 class BinaryOpNode : public ExprNode {
+    
   public:
   
     const char op;  // Operation
@@ -222,13 +296,89 @@ class BinaryOpNode : public ExprNode {
     
     const char* getNodeType();
     
-    Value* codegen();
+    virtual Value* codegen();
+    
+};
+
+class BoolExprNode : public ExprNode {
+    
+  public:
+  
+    ExprNode* lhs;
+    ExprNode* rhs;
+    char op;
+    
+    BoolExprNode(ExprNode* l, ExprNode* r, const char o);
+    ~BoolExprNode();
+    
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+    
+};
+
+
+/****************************** LOOPS ***********************************/
+class IfNode : public StmtNode {
+  public:
+    
+    
+    BoolExprNode* bExpr;
+    char op;
+    StmtList* then;
+    
+    IfNode(BoolExprNode* b, StmtList* t);
+    ~IfNode();
+    
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+    
+};
+
+class DoWhileNode : public StmtNode {
+    
+  public:
+    
+    BoolExprNode* exit_cond;
+    StmtList* body;
+    
+    // either a 'd' or 'w' to determine this a 'do-while' or just 'while'
+    char loop; 
+    
+    DoWhileNode(StmtList* b, char l, BoolExprNode* e);
+    ~DoWhileNode();
+    
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+    virtual Value* whilecodegen();
+    virtual Value* dowhilecodegen();
+};
+
+class ForNode : public StmtNode {
+  public:
+  
+    ExprNode* start;
+    BoolExprNode* bExpr;
+    StmtNode* step;
+    StmtList* body;
+    
+    DoWhileNode* cheat; 
+    
+    ForNode(ExprNode* sta, BoolExprNode* be,  StmtList* b);
+    ForNode(ExprNode* sta, BoolExprNode* be, StmtNode* ste, StmtList* b);
+   
+    ~ForNode();
+    
+    const char* getNodeType();
+    void generateCheats();
+    virtual Value* codegen();
     
 };
 
 /****************************** STATEMENTS ***********************************/
-
-class MutateVarNode: public StmtNode {
+class MutateVarNode : public StmtNode {
     
   public:
   
@@ -260,7 +410,7 @@ class ReturnNode : public StmtNode {
     const char* getNodeType();
     int getVal();
     bool equals(ASTNode* node);
-    void accept(Visitor* v);
+    //void accept(Visitor* v);
     
     virtual Value* codegen();
     
@@ -281,12 +431,14 @@ class LoadVarNode : public ExprNode {
 
 };
 
+
 /* VariableDeclarationNode
  * for creating nodes containing variable declarations
  */
 class VarDeclNode : public DeclNode {
     
     bool init = false;
+    bool isGlobal = false;
     
   public:
     
@@ -295,8 +447,7 @@ class VarDeclNode : public DeclNode {
     
     ExprNode* value = nullptr;
     
-    VarDeclNode(const char* ty, const char* na);
-    VarDeclNode(const char* ty, const char* na, ExprNode* va);
+    VarDeclNode(const char* ty, const char* na, ExprNode* va = nullptr, bool global = false);
     
     ~VarDeclNode();
     
@@ -309,10 +460,11 @@ class VarDeclNode : public DeclNode {
     const char* getNodeType();
     bool equals(ASTNode* node);
     
-    void accept(Visitor* v);
+    //void accept(Visitor* v);
     
-    virtual AllocaInst* initialize();
     virtual Value* codegen();
+    
+    Type* getLLVMType();
     
 };
 
@@ -335,25 +487,55 @@ class VarDeclNode : public DeclNode {
 // I think I'm going to use this for arguments, not sure yet.
 typedef std::list<VarDeclNode*> VarList;
 
-// Keep basic info about functions
-class PrototypeNode : public ASTNode {
-  public:
+// Function Calls
+class FCallNode : public ExprNode {
   
-    const char* name;
-    const char* type;
+  public:
+    std::string callee;
+    std::vector<ExprNode*> args;  // We'll see how this turns out
     
-    std::vector<char*> args;
+    FCallNode(const char* c, std::vector<ExprNode*>& a);
+    ~FCallNode();
     
-    PrototypeNode(const char* ty, const char* na);
-    ~PrototypeNode();
+    const char* getNodeType();
+    
+    virtual Value* codegen();
+};
 
-    void accept(Visitor* v);
-    const char* getName();
+class Parameter {
+  public:
+    std::string type;
+    std::string name;
+    
+    Parameter(const char* ty, const char* na);
+    ~Parameter();
+    
     const char* getType();
+    const char* getName();
     
     virtual Value* codegen();
     
 };
+
+
+class FuncPrototype {
+  public:  
+    std::string type;
+    std::string name;
+    std::vector<std::pair<std::string, std::string>*> args;
+    
+    FuncPrototype(std::string& t, std::string& n, std::vector<std::pair<std::string, std::string>*> a);
+    ~FuncPrototype();
+    
+    const char* getType();
+    const char* getName();
+    
+    const char* getNodeType();
+    
+    Function* codegen();
+    
+};
+
 
 /* FunctionDeclarationNode
  * for creating nodes containing functions
@@ -362,12 +544,9 @@ class FuncDeclNode : public DeclNode {
     
   public:
     
-    PrototypeNode* prototype;
-    
-    const char* type;           // return type
-    const char* name;           // name of function
-    
+    FuncPrototype* proto;
     StmtList* statements;       // statements to be executed
+    
     SymbolTable* SymTable;
     //VarList args;             // arguments passed * NOT YET IMPLEMENTED *
         
@@ -375,14 +554,14 @@ class FuncDeclNode : public DeclNode {
     // Hold a reference to the symbol table here. We need to hold one for 
     // when the codeGen phase comes along.
     
-    FuncDeclNode(const char* ty, const char* na, StmtList* stl, SymbolTable* st);
+    FuncDeclNode(FuncPrototype* p, StmtList* stl, SymbolTable* st);
     ~FuncDeclNode();
     
     const char* getType();
     const char* getName();
     const char* getNodeType();
     bool equals(ASTNode* node);
-    void accept(Visitor* v);
+    //void accept(Visitor* v);
     
     virtual Value* codegen();
     
@@ -404,19 +583,16 @@ class ProgramNode : public StmtNode {
     const char* getName();
     
     bool equals(ASTNode* node);
-    void accept(Visitor* v);
+    //void accept(Visitor* v);
     
     void compile();
     
     virtual Value* codegen();
 };
 
-
 /*****************************Not yet Implemented*****************************/
+
 // Or broken... needs to get implemented later
-
-
-
 
 /* FunctionCallNode
  * This node is created when a function is called.
@@ -485,10 +661,5 @@ class Block : public ExprNode {
     
 };
 */
-
-
-
-
-
 
 //#endif

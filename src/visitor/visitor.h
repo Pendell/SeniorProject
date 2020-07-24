@@ -16,7 +16,6 @@ class ReturnNode;
 class VarDeclNode;
 class FuncDeclNode;
 class ProgramNode;
-class PrototypeNode;
 
 class Visitor {
     
@@ -30,7 +29,7 @@ class Visitor {
     virtual void visit(IntegerNode* node);
     virtual void visit(ReturnNode* node);
     virtual void visit(VarDeclNode* node);
-    virtual void visit(PrototypeNode* node);
+   
     virtual void visit(FuncDeclNode* node);
     virtual void visit(ProgramNode* node);
 
@@ -50,7 +49,7 @@ class PrintVisitor : public Visitor {
     void visit(IntegerNode* node);
     void visit(ReturnNode* node);
     void visit(VarDeclNode* node);
-    void visit(PrototypeNode* node);
+    
     void visit(FuncDeclNode* node);
     void visit(ProgramNode* node);
     
@@ -72,7 +71,7 @@ class CodeGenVisitor : public Visitor {
     void visit(IntegerNode* node);
     void visit(ReturnNode* node);
     void visit(VarDeclNode* node);
-    void visit(PrototypeNode* node);
+
     void visit(FuncDeclNode* node);
     void visit(ProgramNode* node);
     

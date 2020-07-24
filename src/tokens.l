@@ -20,21 +20,33 @@
  * The second definition is just shorthand for telling Flex to return just the
  * token type to Bison. 
  */
+ 
 #define SAVE_TOKEN yylval.string = new std::string(yytext, yyleng)
+
 #define TOKEN(t) (yylval.token = t)
 
 %}
 
 %option noyywrap 
 
-
 %%
 
 "="                             { return TOKEN(EQUAL);  }
-"+"                             { return TOKEN(ADD);   }
-"-"                             { return TOKEN(SUB);   }
-"*"                             { return TOKEN(MUL);   }
-"/"                             { return TOKEN(DIV);   }                
+"+"                             { return TOKEN(ADD);    }
+"-"                             { return TOKEN(SUB);    }
+"*"                             { return TOKEN(MUL);    }
+"/"                             { return TOKEN(DIV);    }
+"'"                             { return TOKEN(SQUOTE); }    
+"++"                            { return TOKEN(INC);    }
+"--"                            { return TOKEN(DEC);    }
+
+"=="                            { return TOKEN(BOOLEQ); }
+"!="                            { return TOKEN(BOOLNEQ);}                    
+
+"if"                            { return TOKEN(IF);     }             
+"for"                           { return TOKEN(FOR);    }
+"do"                            { return TOKEN(DO);     }
+"while"                         { return TOKEN(WHILE);  }
 
 "("                             { return TOKEN(LPAREN);   }
 ")"                             { return TOKEN(RPAREN);   }
@@ -53,6 +65,7 @@
 
 [0-9]+                          { SAVE_TOKEN; return NUMCONST; }
 [a-zA-Z_][a-zA-Z0-9_]*          { SAVE_TOKEN; return ID; }
-.|\n                            { /* pass over bad characters for now */ }
+[[:alnum:]]                     { SAVE_TOKEN; return CHARCONST;}  
+.|\n|\t                         { /* pass over bad characters for now */ }
 
 %%

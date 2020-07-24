@@ -13,7 +13,6 @@ void Visitor::visit(IntegerNode* node) { }
 void Visitor::visit(ReturnNode* node) { }
 void Visitor::visit(VarDeclNode* node) { }
 void Visitor::visit(FuncDeclNode* node) { }
-void Visitor::visit(PrototypeNode* node) { }
 void Visitor::visit(ProgramNode* node) { }
 
 
@@ -54,9 +53,7 @@ void PrintVisitor::visit(ProgramNode* node){
     printf("Visiting a Program Node!\n");
 }
 
-void PrintVisitor::visit(PrototypeNode* node){
-    printf("Visiting a Prototype Node!\n");
-}
+
 
 using namespace llvm;
 
@@ -76,9 +73,6 @@ void CodeGenVisitor::visit(ReturnNode* node) {
     node->codegen();
 }
 void CodeGenVisitor::visit(VarDeclNode* node) {
-    node->codegen();
-}
-void CodeGenVisitor::visit(PrototypeNode* node) {
     node->codegen();
 }
 void CodeGenVisitor::visit(FuncDeclNode* node) {

@@ -28,6 +28,7 @@
 
 #include "parser.cpp"
 #include "parser.hpp"
+
 #include "tokens.cpp"
 
 #include "./nodes/node.h"
@@ -38,9 +39,6 @@ using namespace llvm;
 
 extern FILE* yyin;
 extern FILE* yyout;
-
-extern SymbolTable* ST;
-extern SymbolTable* GST;
 
 // LLVMContext TheContext;
 // Module* TheModule;
@@ -81,39 +79,39 @@ extern int yyparse(void);
  * test tree. This will allow us to compare the two trees against each other
  * and verify that Bison is creating the tree we want it to create.
  */
-void buildAndTestProgram(){
+// void buildAndTestProgram(){
     
-    printf("\n\u001b[36mTESTING BISON-AUTOMATED AST AGAINST HANDMADE AST\n\u001b[0m");
+    // printf("\n\u001b[36mTESTING BISON-AUTOMATED AST AGAINST HANDMADE AST\n\u001b[0m");
     
-    testProgram = new ProgramNode();
+    // testProgram = new ProgramNode();
     
-    DeclNode* d1 = new DeclNode();
-    DeclNode* d2 = new DeclNode();
+    // DeclNode* d1 = new DeclNode();
+    // DeclNode* d2 = new DeclNode();
     
-    testProgram->start = d1;
+    // testProgram->start = d1;
     
-    StmtList* testStmtList = new StmtList();
+    // StmtList* testStmtList = new StmtList;
     
-    ReturnNode* r1 = new ReturnNode(new IntegerNode(0));
-    VarDeclNode* x = new VarDeclNode("int", "x", new IntegerNode(10));
+    // ReturnNode* r1 = new ReturnNode(new IntegerNode(0));
+    // VarDeclNode* x = new VarDeclNode("int", "x", new IntegerNode(10));
     
-    testStmtList->push_front(r1);
-    testStmtList->push_front(x);
+    // testStmtList->push_front(r1);
+    // testStmtList->push_front(x);
     
-    const char* type = "int";
-    const char* name = "main";
+    // const char* type = "int";
+    // const char* name = "main";
     
-    FuncDeclNode* f1 = new FuncDeclNode(type, name, testStmtList, ST);
-    d1->lhs = f1;
-    // d1->rhs = d2;
+    // FuncDeclNode* f1 = new FuncDeclNode(type, name, testStmtList, ST);
+    // d1->lhs = f1;
+    // // d1->rhs = d2;
     
-    if(testProgram->equals(program)){
-        printf("We've succeeded! Bison is constructing the correct AST!\n");
-    } else {
-        printf("Comparison failed; Program != testProgram\n");
-    }
+    // if(testProgram->equals(program)){
+        // printf("We've succeeded! Bison is constructing the correct AST!\n");
+    // } else {
+        // printf("Comparison failed; Program != testProgram\n");
+    // }
     
-}
+// }
 
 void yyerror(const char* s) {
     printf("Help! Error! Help! --> %s\n", s);
@@ -149,9 +147,5 @@ int main(int argc, char** argv){
         
         
     }
-    
-  
-    
-    
 }
 

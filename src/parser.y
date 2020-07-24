@@ -18,6 +18,7 @@
     #include <list>    // For the symbol table list
     #include <unordered_map>
     #include <utility>
+    #define YYDEBUG 1
     
     using namespace llvm;
     
@@ -26,21 +27,25 @@
     extern int yyparse();
     extern int yylex();
 
-    #define YYDEBUG 1
+   
 
-    StmtList* currStmtList = new StmtList;
+    StmtList* currStmtList = new StmtList();
     
-    // These are defined in main.cpp
-    extern ProgramNode* program; /* the root of the created AST */
-    // extern SymbolTable* globalST;
-    // extern SymbolTable* currSymTable;
+    /* the root of the created AST */
+    extern ProgramNode* program; 
     
-    // Symbol Tables -- Defined in node.h
-    extern SymbolTable* GST;
-    extern SymbolTable* ST;
+    ASTNode* scan(const char* target, SymbolTable* st);
     
-    ASTNode* scan(const char* target);
+    // A vector of pairs
+    // -> Position in Vector = Index of argument in func prototype
+    // -> The pair of string are type and name of variable (ie "int" "x")
     
+    
+    static std::stack<SymbolTable*> symStack;
+    
+    static std::vector<std::pair<std::string, std::string>*> params;
+    static std::vector<ExprNode*> args;
+    static FuncPrototype* protoRef;
     
 %} 
 
@@ -62,8 +67,19 @@
     DeclNode* decl;
     StmtList* stmtList;
     ReturnNode* rtrn;
-    BinaryOpNode* binOp;
+    BinaryOpNode* binaryOp;
+    UnaryOpNode* unaryOp;
     MutateVarNode* mutVar;
+    BoolExprNode* boolEx;
+    FCallNode* fCall;
+    Parameter* param;
+    VarDeclNode* vDecl;
+    IfNode* ifNode;
+    ForNode* forNode;
+    DoWhileNode* dwNode;
+    
+    
+    std::pair<std::string, std::string>* pairs;
     
     // Nodes
     ExprNode* expr;
@@ -92,23 +108,34 @@
 * of the grammar section.                                                    *  
 *****************************************************************************/
 %type<expr>     expr constant
-%type<binOp>    binaryOp
+%type<binaryOp> binaryOpExpr
+%type<unaryOp>  unaryOpExpr
+%type<fCall>    funcCall
+%type<boolEx>   boolExpr
+
+%type<dwNode>   doWhileLoop
+%type<ifNode>   ifLoop
+%type<forNode>  forLoop
+
 %type<mutVar>   varMutate
-%type<op>       operation
-%type<stmt>     stmt
+%type<op>       binaryOp boolOp unaryOp
+%type<stmt>     stmt exprStmt loop initStmt
 %type<stmtList> stmtList 
 %type<string>   typeSpecifier
-%type<decl>     declList declaration varDecl funcDecl
+%type<decl>     declList declaration varDecl funcDecl param
 %type<program>  program
 %type<rtrn>     returnStmt
 
 %token<token>   VOID "void"  CHAR "char" 
 %token<string>  ID NUMCONST CHARCONST STRINGCONST INT "int"
-%token          LPAREN "(" RPAREN ")" LBRACKET "{" RBRACKET "}"
+%token          LPAREN "(" RPAREN ")" LBRACKET "{" RBRACKET "}" SQUOTE "'"
 %token          RETURN "return"
+%token          IF "if" FOR "for" DO "do" WHILE "while"
+
 %token          COLON ":" SEMICOLON ";" COMMA ","
-%token<token>   EQUAL "="   
+%token<token>   EQUAL "=" BOOLEQ "==" BOOLNEQ "!="
 %token<token>   ADD "+" SUB "-" MUL "*" DIV "/"
+%token<token>   INC "++" DEC "--"
 
 // Precedences
 %left EQUAL
@@ -158,42 +185,94 @@
 *****************************************************************************/
 %% 
 
-program:        declList { program->start = $1; }
+program:       { symStack.push(new SymbolTable()); } declList { program->start = $2; }
 ;
 
-declList:       declaration declList { $$ = new DeclNode(); $$->lhs = $1; $$->rhs = $2; }
+declList:       declaration declList {
+                    $$ = new DeclNode(); $$->lhs = $1; $$->rhs = $2;
+                }
+                
 |               %empty { $$ = nullptr; }
 ;
 
-declaration:    funcDecl { }
-|               varDecl { }
+declaration:    funcDecl { symStack.top()->push_back($1); }
+|               gVarDecl { symStack.top()->push_back($1); }
 ;
 
-funcDecl:       typeSpecifier ID "(" ")" "{" stmtList "}" {
-                    printf("FuncDeclNode breaking?\n\n");
-                    const char* type = "int";
-                    const char* name = "main";
-                    $$ = new FuncDeclNode(type, name, currStmtList, ST);
-                    currStmtList = new StmtList(); // Reset stmtlist
-                    printf("Nope.\n");
+funcDecl:       typeSpecifier ID   {
+                    
+                    // find the symbol in the table
+                    DeclNode* d = symStack.get($2);
+                    if(d)
+                        if(strcmp(d->getNodeType(), "FuncDeclNode") != 0) {
+                            printf("Error: symbol \"%s\" already declared.\n", $2->c_str());
+                            exit(99);
+                        }
+                    } 
+                    
+                } "(" paramDelim ")" {
+                    protoRef = new FuncPrototype(*$1, *$2, params);
+                }"{" stmtList "}" {
+                    StmtList* s = stmtStack.top();
+                    SymbolTable* st = symStack.top();
+                    $$ = new FuncDeclNode(protoRef, s, st);
+                    stmtStack.pop();
+                    symStack.pop();
+                    
                 }
 ;
 
-stmtList:       stmt stmtList { 
-                    printf("StmtList breaking?\n\n");
-                    currStmtList->push_front($<stmt>1);
-                    printf("Nope.\n");
+gVarDecl:       typeSpecifier ID ";" {
+                
                 }
-|               %empty {}
+|               typeSpecifier ID "=" expr ";" {
+                    
+                }
 ;
+
+paramDelim:     paramList
+|               %empty
+;
+
+paramList:      paramList "," param 
+|               param 
+;
+
+param:          typeSpecifier ID {
+                    std::string type($1->c_str());
+                    std::string name($2->c_str());
+                    params.push_back(new std::pair<std::string, std::string>(type, name));
+                    symStack.top()->push_back(new VarDeclNode($1->c_str(), $2->c_str()));
+                } 
+;
+
+
+
+stmtList:       loop stmtList {
+                    stmtStack.top()->push_front($<stmt>1);
+                }
+                
+|               stmt ";" stmtList { 
+                    stmtStack.top()->push_front($<stmt>1);
+                }
+                
+|               %empty { }
+;
+
 
 stmt:           varDecl
 |               varMutate
 |               returnStmt
+|               exprStmt
 ;
 
-varDecl:        typeSpecifier ID "=" expr ";" {
-                    printf("\nExpression\n\n");
+
+exprStmt:       expr
+;
+
+
+
+varDecl:        typeSpecifier ID "=" expr {
                     
                     const char* name = $2->c_str();
                     
@@ -201,101 +280,222 @@ varDecl:        typeSpecifier ID "=" expr ";" {
                     SymbolTable::iterator it = ST->begin();
                     
                     while(it != ST->end()){
-                        printf("\n\n %s == %s ?\n", (*it)->getName(), name);
                         if(strcmp((*it)->getName(), name) == 0) {
-                            printf("Yep! Throwing error.\n");
                             printf("Variable %s already declared\n", name);
                             return 1;
                         } else {
-                            printf("Nope... continuing parse.\n\n");
                         }
                         ++it;
                     }
                     
                     $$ = new VarDeclNode($1->c_str(), $2->c_str(), $4);
-                    printf("Printing a name...");
-                    printf("%s\n", $$->getName());
-                    printf("Printing a value...");
-                    printf(" %d\n", $$->getVal());
-                    ST->push_back($$); 
+                    symStack.top()->push_back($$); 
                 } 
                 
-|               typeSpecifier ID ";" {
+|               typeSpecifier ID {
 
-                    printf("\nNullptr\n\n");
                     const char* name = $2->c_str();
                     
                     // Check the symbol table for the variable
                     SymbolTable::iterator it = ST->begin();
                     
                     while(it != ST->end()){
-                        printf("\n\n %s == %s ?\n", (*it)->getName(), name);
                         if(strcmp((*it)->getName(), name) == 0) {
-                            printf("Yep! Throwing error.\n");
                             printf("Variable %s already declared\n", name);
                             return 1;
                         } else {
-                            printf("Nope... continuing parse.\n\n");
                         }
                         ++it;
                     }
                     
                     $$ = new VarDeclNode($1->c_str(), $2->c_str());
-                    ST->push_back($$); 
+                    symStack.top()->push_back($$);
                 }
 ;
 
-varMutate:      ID "=" expr ";" {
+loop:           ifLoop
+|               doWhileLoop
+|               forLoop
+;
+
+doWhileLoop:    "do" "{" {
+                    stmtStack.push(new StmtList);
+                } stmtList "}" "while" "(" boolExpr ")" ";" {
+                    StmtList* s = stmtStack.top();
+                    $$ = new DoWhileNode(s, 'd', $8);
+                    stmtStack.pop();
+                    
+                }
+                
+|               "while" "(" boolExpr ")" "{" {
+                    stmtStack.push(new StmtList);
+                } stmtList "}" {
+                    StmtList* s = stmtStack.top();
+                    $$ = new DoWhileNode(s, 'w', $3);
+                    stmtStack.pop();
+                }
+;
+
+ifLoop:         "if" "(" boolExpr ")" "{" {
+                    stmtStack.push(new StmtList);
+                
+                } stmtList "}" {
+                    StmtList* s = stmtStack.top();
+                    $$ = new IfNode($3, s);
+                    stmtStack.pop();
+                    
+                }
+;
+
+forLoop:        "for" "(" initStmt ";" boolExpr ";" stmt ")" "{" {
+                    stmtStack.push(new StmtList);
+                    
+                } stmtList "}" {
+                    StmtList* s = stmtStack.top();
+                    $$ = new ForNode($3, $5, $7, s);
+                    stmtStack.pop();
+                    
+                }
+;
+
+initStmt:       varDecl
+|               expr
+;
+
+varMutate:      ID "=" expr  {
                     // Scan the symbol table for the variable, if it doesn't exist, error
                     const char* name = $1->c_str();
-                    ASTNode* target = scan(name);
+                    ASTNode* target = scan(name, symStack.top());
                     if(target){
                         VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
                         $$ = new MutateVarNode(var, $3);
-                        //currStmtList->push_back($$);
+                        
+                        
                     } else {
                         printf("Variable %s not declared\n", name);
+                        
                     }
                 
                 }
+|               ID unaryOp {
+                    // Scan the symbol table for the variable, if it doesn't exist, error
+                    const char* name = $1->c_str();
+                    
+                    ExprNode* rhs;
+                    
+                    ASTNode* target = scan(name, symStack.top());
+                    if(target){
+                        rhs = new BinaryOpNode($2, new LoadVarNode(name), new IntegerNode(1));
+                        
+                        VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
+                        
+                        $$ = new MutateVarNode(var, rhs);
+                    } else {
+                        printf("Variable %s not declared\n", name);
+                    }
+                }
+|               unaryOp ID {
+                    // Scan the symbol table for the variable, if it doesn't exist, error
+                    const char* name = $2->c_str();
+                    
+                    ExprNode* rhs;
+                    
+                    ASTNode* target = scan(name, symStack.top());
+                    if(target){
+                        rhs = new BinaryOpNode($1, new LoadVarNode(name), new IntegerNode(1));
+                        
+                        VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
+                        
+                        $$ = new MutateVarNode(var, rhs);
+                    } else {
+                        printf("Variable %s not declared\n", name);
+                    }
+                }
 ;
 
-returnStmt:     "return" expr ";"{ $$ = new ReturnNode($2); }
+returnStmt:     "return" expr { $$ = new ReturnNode($2); }
 ;
 
-expr:           constant 
-|               binaryOp
+boolExpr:       expr boolOp expr {
+                    $$ = new BoolExprNode($1, $3, $2);
+                }
+;
+
+expr:           funcCall
+|               constant 
+|               binaryOpExpr
+|               unaryOpExpr
 |               ID {
                     const char* name = $1->c_str();
-                    printf("Parsing a variable expr\n");
-                    
-                    ASTNode* target = scan(name);
+                    ASTNode* target = scan(name, symStack.top());
                     
                     // find the variable 
                     if(target){
                         $$ = new LoadVarNode(name);
+                        
                     } else {
-                        printf("Variable %s not declared.\n");
+                        printf("\u001b[31mVariable %s not declared.\n \u001b[0m", name);
+                        
                     }
                 }
 ;
 
-binaryOp:       expr operation expr {
-                    printf("\u001b[32mParsing Binary Expression.\u001b[0m\n");
-                    printf("About to break...");
-                    $$ = new BinaryOpNode($2, $1, $3);
-                    printf("Nope... didn't break... hmm.\n");
+funcCall:       ID  {
+                    args.clear();
+                } "(" exprListDelim ")" {
+                
+                    $$ = new FCallNode($1->c_str(), args);
+                    
                 }
 ;
 
-operation:      "+" { $$ = '+'; }
+exprListDelim:  exprList
+|               %empty
+;
+
+exprList:       exprList "," expr { args.push_back($3); }
+|               expr { args.push_back($1); }
+;
+
+
+
+
+
+binaryOpExpr:   expr binaryOp expr {
+                    $$ = new BinaryOpNode($2, $1, $3);
+                }
+;
+
+unaryOpExpr:    unaryOp expr { 
+                    $$ = new UnaryOpNode($1, $2, "pre");
+                }
+                
+|               expr unaryOp {
+                    $$ = new UnaryOpNode($2, $1, "post");
+                }
+;
+
+boolOp:         "==" { $$ = '='; }
+|               "!=" { $$ = '!'; }
+;
+
+binaryOp:       "+" { $$ = '+'; }
 |               "-" { $$ = '-'; }
 |               "*" { $$ = '*'; }
 |               "/" { $$ = '/'; }
 ;
 
+unaryOp:        "++" { $$ = '+'; }
+|               "--" { $$ = '-'; }
+;  
+
 constant:       NUMCONST { $$ = new IntegerNode(atoi($1->c_str())); }
-|               CHARCONST { }
+|               "'" CHARCONST "'" { 
+                    const char* s = $2->c_str();
+                    char c = s[0];
+                    printf("The character is %c\n", c);
+                    exit(99);
+                }
 |               STRINGCONST { }
 ;
 
@@ -315,26 +515,21 @@ typeSpecifier:  "int" { $$ = new std::string("int"); }
 * I'm in the process of moving everything out of the epilogue into it's own  *
 * file so that the package looks nicer.                                      *
 *****************************************************************************/
-ASTNode* scan(const char* target) {
 
-    SymbolTable::iterator it = ST->begin();
-    while(it != ST->end()) {
+ASTNode* scan(const char* target, SymbolTable* st) {
 
-        printf("Looking for %s, currently at %s\n", target, (*it)->getName());
-        
+    SymbolTable::iterator it = st->begin();
+    while(it != st->end()) {
         if(strcmp((*it)->getName(), target) == 0) {
-        
-            printf("Aight, about to segfault.\n");
-            printf("for sure...\n");
-            printf("Trying to access data inside: %s\n", (*it)->getName());
-            printf("%s is of type %s\n", (*it)->getName(), (*it)->getNodeType());
-            printf("Value at %s = %d\n", target, (*it)->getVal());
-            return (*it);
             
+            if((*it)->value)
+                printf("Value at %s = %d\n", target, (*it)->getVal());
+            
+            return (*it);
         }
+        
         ++it;
     }
     
     return nullptr;
-    
 }
