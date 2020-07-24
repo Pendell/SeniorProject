@@ -51,15 +51,20 @@ class DeclNode;
 class VarDeclNode;
 class ASTNode;
 
+class VarDeclNode;
+class FuncDeclNode;
+
 class SymbolTable {
     
     SymbolTable* parent;
     
+  public:  
     SymbolTable(SymbolTable* p);
     ~SymbolTable();
     
     // Returns the parent of this symbol table
-    SymbolTable* getParent();
+    virtual SymbolTable* getParent() = 0;
+    virtual VarDeclNode* get(std::string n) = 0;
     
 };
 
@@ -81,17 +86,18 @@ class GlobalSymbolTable : public SymbolTable {
     // Finds any entities with the name 'n' in either funcs or gvars.
     // returns the index if found, -1 if not found.
     int func_lookup(std::string n);
-    int var_lookup(std::string n);
+    int lookup(std::string n);
     
     // Tries to add the DeclNode* to the respective symbol table.
     // returns true if added successfully, false otherwise.
     bool add(FuncDeclNode* f);
     bool add(VarDeclNode* v);
     
+    
     // Tries to grab the function or variable with the name 'n'
     // returns the DeclNode* if found, nullptr o/w.
     FuncDeclNode* get_func(std::string n);
-    VarDeclNode* get_gvar(std::string n);
+    VarDeclNode* get(std::string n);
     
     bool isEqual(GlobalSymbolTable* o); // Not yet implemented
     
@@ -109,7 +115,7 @@ class ScopedSymbolTable : public SymbolTable {
   
     int size();
     
-    int lookup(VarDeclNode* v);
+    int lookup(std::string n, bool lookGlobally);
     
     void add();
     
@@ -117,10 +123,7 @@ class ScopedSymbolTable : public SymbolTable {
     
     bool isEqual(ScopedSymbolTable* o);
     
-};
-
-extern SymbolTable* ST;   
-extern SymbolTable* GST;   
+}; 
 
 // TheContext = object that accesses much of the core llvm data structures
 static LLVMContext TheContext;
@@ -447,7 +450,7 @@ class VarDeclNode : public DeclNode {
     
     ExprNode* value = nullptr;
     
-    VarDeclNode(const char* ty, const char* na, ExprNode* va = nullptr, bool global = false);
+    VarDeclNode(const char* ty, const char* na, ExprNode* va, bool global);
     
     ~VarDeclNode();
     
@@ -463,29 +466,11 @@ class VarDeclNode : public DeclNode {
     //void accept(Visitor* v);
     
     virtual Value* codegen();
+    virtual Value* codegenGlobalVar();
     
     Type* getLLVMType();
     
 };
-
-// class VarNode : StmtNode {
-    
-    // VarDeclNode* parent;
-    
-  // public:
-  
-    // const char* name;
-    // const char* type;
-    // AllocaInst* alloc;
-    
-    // VarNode();
-    // ~VarNode();
-    
-    // virtual Value* codegen();
-// };
-
-// I think I'm going to use this for arguments, not sure yet.
-typedef std::list<VarDeclNode*> VarList;
 
 // Function Calls
 class FCallNode : public ExprNode {

@@ -17,8 +17,8 @@ nodes.o:
 visitor.o:
 	g++ -c ./visitor/visitor.cpp $(LLVM_VAR2) -o ./build/visitor.o -std=c++14
 
-test:
-	g++ node.h tests/nodeComparisonTest.cpp -o nodeTest
+tests: nodes.o
+	g++ node.h tests/SymbolTableTest.cpp -o SymbolTableTest
 
 parser.cpp parser.hpp: parser.y
 	bison -d -o parser.cpp parser.y --report=all

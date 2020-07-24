@@ -1,6 +1,6 @@
 #include "node.h"
 
-FuncPrototype::FuncPrototype(std::string& t, std::string& n, std::vector<std::pair<std::string, std::string>*> a) {
+FuncPrototype::FuncPrototype(std::string& t, std::string& n, std::vector<std::pair<std::string, std::string>*> a = NULL) {
     type = t;
     name = n;
     args = std::move(a);

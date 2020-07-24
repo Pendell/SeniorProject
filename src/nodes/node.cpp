@@ -14,9 +14,6 @@ Reset:\u001b[0m
 */
 using namespace llvm;
 
-SymbolTable* ST = new SymbolTable();
-SymbolTable* GST = new SymbolTable();
-
 /******************************* AST NODE ************************************/
 const char* ASTNode::getNodeType(){
     return "ASTNode";
@@ -339,9 +336,8 @@ Value* VarDeclNode::codegen() {
 // }
 
 Value* VarDeclNode::codegenGlobalVar(){
-    TheModule->getOrInsertGlobal(name, getLLVMType());
-    Value* v = TheModule->getNamedGlobal(name);
-    v->setLinkage(GlobalValue::ExternalLinkage);
+    GlobalVariable* gv = new GlobalVariable(getLLVMType(), false, GlobalVariable::CommonLinkage, 0, Twine(getName()));
+    // gv->setInitializer(value->codegen());
 }
 
 Type* VarDeclNode::getLLVMType(){

@@ -26,10 +26,6 @@
     extern FILE* yyin;
     extern int yyparse();
     extern int yylex();
-
-   
-
-    StmtList* currStmtList = new StmtList();
     
     /* the root of the created AST */
     extern ProgramNode* program; 
@@ -40,9 +36,7 @@
     // -> Position in Vector = Index of argument in func prototype
     // -> The pair of string are type and name of variable (ie "int" "x")
     
-    
     static std::stack<SymbolTable*> symStack;
-    
     static std::vector<std::pair<std::string, std::string>*> params;
     static std::vector<ExprNode*> args;
     static FuncPrototype* protoRef;
@@ -62,7 +56,7 @@
 *****************************************************************************/
 %union { 
     
-    ProgramNode* program; 
+    ProgramNode* program;
     
     DeclNode* decl;
     StmtList* stmtList;
@@ -185,7 +179,7 @@
 *****************************************************************************/
 %% 
 
-program:       { symStack.push(new SymbolTable()); } declList { program->start = $2; }
+program:       { symStack.push(new GlobalSymbolTable()); } declList { program->start = $2; }
 ;
 
 declList:       declaration declList {
@@ -195,35 +189,18 @@ declList:       declaration declList {
 |               %empty { $$ = nullptr; }
 ;
 
-declaration:    funcDecl { symStack.top()->push_back($1); }
-|               gVarDecl { symStack.top()->push_back($1); }
+declaration:    funcDecl { symStack.top()->add($1); // Full function declaration and definition }
+|               fProto   { symStack.top()->add($1); // Declaration of function prototype }
+|               gVarDecl { symStack.top()->add($1); // Declaring a global variable }
 ;
 
-funcDecl:       typeSpecifier ID   {
-                    
-                    // find the symbol in the table
-                    DeclNode* d = symStack.get($2);
-                    if(d)
-                        if(strcmp(d->getNodeType(), "FuncDeclNode") != 0) {
-                            printf("Error: symbol \"%s\" already declared.\n", $2->c_str());
-                            exit(99);
-                        }
-                    } 
-                    
-                } "(" paramDelim ")" {
-                    protoRef = new FuncPrototype(*$1, *$2, params);
-                }"{" stmtList "}" {
-                    StmtList* s = stmtStack.top();
-                    SymbolTable* st = symStack.top();
-                    $$ = new FuncDeclNode(protoRef, s, st);
-                    stmtStack.pop();
-                    symStack.pop();
-                    
+funcDecl:       typeSpecifier ID "{" stmtList "}" {
+                    symStack.top()->lookup(*$2);
                 }
 ;
 
 gVarDecl:       typeSpecifier ID ";" {
-                
+                    
                 }
 |               typeSpecifier ID "=" expr ";" {
                     

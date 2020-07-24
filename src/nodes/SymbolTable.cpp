@@ -95,12 +95,18 @@ int ScopedSymbolTable::size(){
     return vars.size();
 }
 
-int lookup(std::string n) {
+int lookup(std::string n, bool lookGlobally = false) {
+    
     for(int i = 0; i < size(); i++){
         if(std::string(vars[i]->getName()) == n)
             return i
     }
-    return -1;
+    
+    // Didn't find, if we're searching globally, search the next symbol table
+    if (lookGlobally)
+        return getParent()->lookup(n);
+    else
+        return -1;
 }
 
 bool ScopedSymbolTable::add(VarDeclNode* v) {
@@ -115,6 +121,8 @@ bool ScopedSymbolTable::add(VarDeclNode* v) {
 VarDeclNode* ScopedSymbolTable::get(std::string n){  
     if(int i = lookup(n) != -1)
         return vars[i];
+    else if (SymbolTable* p = getParent())
+        return p->get(n);
     else
         return nullptr;
 }
