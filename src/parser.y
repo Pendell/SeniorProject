@@ -212,11 +212,18 @@ funcDecl:       fProto {
 ;
 
 fProto:         typeSpecifier ID "(" paramDelim ")" {
-                    printf("Fproto name: %s\n", $2->c_str());
-                    printf("Fproto type: %s\n", $1->c_str());
-                    FuncPrototype* fp = new FuncPrototype(new std::string($1->c_str()), new std::string($2->c_str()), params);
-                    if(!symStack.top()->get(fp))
+                    // NOTE: $1 and $2 are std::string* <--- pointers to std::strings(char*)
+                    std::string name($2->c_str());
+                    std::string type($1->c_str());
+                    printf("Fproto name: %s\n", name.c_str());
+                    printf("Fproto type: %s\n", type.c_str());
+                    FuncPrototype* fp = new FuncPrototype(type, name, params);
+                    if(!symStack.top()->get(fp)) {
                         symStack.top()->add(fp);
+                        $$ = fp;
+                    } else {
+                        printf("Function prototype %s already declared", name.c_str());
+                    }
                     params.clear();
                 }
 

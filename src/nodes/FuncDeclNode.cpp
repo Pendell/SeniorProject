@@ -9,11 +9,11 @@ FuncDeclNode::~FuncDeclNode() {
 }
     
 const char* FuncDeclNode::getType() {
-    return proto->getType();
+    return proto->getType().c_str();
 }
 
 const char* FuncDeclNode::getName() {
-    return proto->getName();
+    return proto->getName().c_str();
 }
 
 FuncPrototype* FuncDeclNode::getProto() {

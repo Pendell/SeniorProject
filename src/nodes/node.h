@@ -534,11 +534,11 @@ class FuncPrototype {
     std::string name;
     std::vector<std::pair<std::string, std::string>*> args;
     
-    FuncPrototype(std::string* t, std::string* n, std::vector<std::pair<std::string, std::string>*> a);
+    FuncPrototype(std::string t, std::string n, std::vector<std::pair<std::string, std::string>*> a);
     ~FuncPrototype();
     
-    const char* getType();
-    const char* getName();
+    std::string getType();
+    std::string getName();
     
     const char* getNodeType();
     

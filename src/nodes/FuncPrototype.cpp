@@ -1,8 +1,8 @@
 #include "node.h"
 
-FuncPrototype::FuncPrototype(std::string* t, std::string* n, std::vector<std::pair<std::string, std::string>*> a = {}) {
-    type = *t;
-    name = *n;
+FuncPrototype::FuncPrototype(std::string t, std::string n, std::vector<std::pair<std::string, std::string>*> a = {}) {
+    type = t;
+    name = n;
     std::cout << "Type & Name: " << type << " " << name << std::endl;
     args = std::move(a);
     
