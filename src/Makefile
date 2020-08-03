@@ -4,8 +4,7 @@ LLVM_VAR2 = `llvm-config --cxxflags --ldflags --system-libs --libs all`
 
 compiler: parser.hpp parser.cpp tokens.cpp main.o
 	rm -f compiler;\
-	g++ build/*.o -lfl -o compiler $(LLVM_VAR2) -pthread -ltinfo -std=c++14 -frtti;\
-	./compiler tests/prog.c
+	g++ build/*.o -lfl -o compiler $(LLVM_VAR2) -pthread -ltinfo -std=c++14 -frtti;
 
 
 main.o: nodes.o
@@ -18,7 +17,7 @@ visitor.o:
 	g++ -c ./visitor/visitor.cpp $(LLVM_VAR2) -o ./build/visitor.o -std=c++14
 
 tests: nodes.o
-	g++ node.h tests/SymbolTableTest.cpp -o SymbolTableTest
+	g++ build/nodes.o tests/SymbolTableTests.cpp $(LLVM_VAR2) -o SymbolTableTest
 
 parser.cpp parser.hpp: parser.y
 	bison -d -o parser.cpp parser.y --report=all

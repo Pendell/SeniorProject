@@ -22,14 +22,12 @@ Value* FCallNode::codegen() {
         printf("Bad Function Call: Name %s not found.\n", callee.c_str());
         exit(98);
         return nullptr;
-        
     }
 
     if(fcallee->arg_size() != args.size()){
         printf("Bad Function Call: Expected %d arguments, %d given.\n", fcallee->arg_size(), args.size());
         exit(99);
         return nullptr;
-        
     }
     
     std::vector<Value* > valvec = {};

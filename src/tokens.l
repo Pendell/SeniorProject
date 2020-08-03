@@ -1,5 +1,5 @@
 %{
-
+#define YYSTYPE std::string
 #include "./nodes/node.h"
 #include "parser.hpp"
 

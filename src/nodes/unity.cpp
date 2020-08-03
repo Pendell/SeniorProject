@@ -14,6 +14,7 @@
 #include "FuncDeclNode.cpp"
 #include "Parameter.cpp"
 #include "FCallNode.cpp"
+#include "GlobalVarDeclNode.cpp"
 
 #include "CharacterNode.cpp"
 #include "SymbolTable.cpp"

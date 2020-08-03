@@ -1,15 +1,10 @@
 #include "node.h"
 
-FuncPrototype::FuncPrototype(std::string& t, std::string& n, std::vector<std::pair<std::string, std::string>*> a = NULL) {
-    type = t;
-    name = n;
+FuncPrototype::FuncPrototype(std::string* t, std::string* n, std::vector<std::pair<std::string, std::string>*> a = {}) {
+    type = *t;
+    name = *n;
+    std::cout << "Type & Name: " << type << " " << name << std::endl;
     args = std::move(a);
-    printf("\n\n\n");
-    for(int i = 0; i < args.size(); i++){
-        printf("The time is: %d\n", i);
-        printf("Parameter #%d: %s %s\n", i, args[i]->first.c_str(), args[i]->second.c_str());
-    }
-    printf("\n\n\n");
     
 }
 
@@ -17,12 +12,14 @@ FuncPrototype::~FuncPrototype() {
 
 }
 
-const char* FuncPrototype::getType() {
-    return type.c_str();
+std::string FuncPrototype::getType() {
+    printf("Getting type: %s\n", type.c_str());
+    return type;
 }
 
-const char* FuncPrototype::getName() {
-    return name.c_str();
+std::string FuncPrototype::getName() {
+    printf("Getting name: %s\n", name.c_str());
+    return name;
 }
 
 
@@ -32,34 +29,48 @@ const char* FuncPrototype::getNodeType() {
 
 Function* FuncPrototype::codegen(){
     
+    printf("Inside FPrototypeCodegen()\n");
+    
+    
     std::vector<Type*> argTypes(args.size());
     
-    
+    printf("Assigning parameter types.\n");
+    printf("Num of parameters: %d\n", args.size());
     for(int i = 0; i < args.size(); i++){
-        
         if(args[i]->first == std::string("int")) {
             argTypes[i] = Type::getInt32Ty(TheContext);
-            
         }
-        
     }
     
     FunctionType* ftype;
     
+    printf("Setting Function Type.\n");
     if (type == "int") {
+        printf("Setting type to INT\n");
         ftype = FunctionType::get(Type::getInt32Ty(TheContext), argTypes, false);
     } else {
         exit(99);
     }
     
-    Function* f = Function::Create(ftype, Function::ExternalLinkage, name, TheModule);
+    printf("Creating Function.\n");
+    printf("It broke.\n");
+    printf("The name of function will be: %s\n", name.c_str());
+    Function* f = Function::Create(ftype, Function::ExternalLinkage, std::string(getName()), TheModule);
     unsigned idx = 0;
     
+    printf("Doing argument stuff.\n");
     for(auto &argument : f->args()) {
         printf("Setting name: %s\n", args[idx]->second.c_str());
         argument.setName(args[idx++]->second);
     }
     
-    
+    printf("Finishing func prototype codegen()\n");
     return f;
+}
+
+bool FuncPrototype::operator==(FuncPrototype& rhs) const {
+    if(type == rhs.type && name == rhs.name && args == rhs.args)
+        return true;
+    else
+        return false;
 }

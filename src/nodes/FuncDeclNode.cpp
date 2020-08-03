@@ -1,7 +1,7 @@
 #include "node.h"
 
 FuncDeclNode::FuncDeclNode(FuncPrototype* p, StmtList* stl, SymbolTable* st) : proto(p), statements(stl), SymTable(st) {
-    
+  
 }
 
 FuncDeclNode::~FuncDeclNode() {
@@ -14,6 +14,10 @@ const char* FuncDeclNode::getType() {
 
 const char* FuncDeclNode::getName() {
     return proto->getName();
+}
+
+FuncPrototype* FuncDeclNode::getProto() {
+    return proto;
 }
     
 const char* FuncDeclNode::getNodeType() {
@@ -108,8 +112,19 @@ bool FuncDeclNode::equals(ASTNode* node) {
 
 Value* FuncDeclNode::codegen() {
     
+    printf("Beginning codegen in FuncDeclNode.\n");
     
-    Function* f = TheModule->getFunction(proto->getName());
+    FuncPrototype* fproto = getProto();
+    if(fproto) {
+        printf("This function has a prototype.\n");
+        printf("The name is: %s", fproto->getName()); 
+    } else
+        printf("This function's prototype not defined.\n");
+    
+    
+    
+    printf("This functions name is: %s\n", getName());
+    Function* f = TheModule->getFunction(std::string(getName()));
     
     if(!f)
         f = proto->codegen();
@@ -122,6 +137,7 @@ Value* FuncDeclNode::codegen() {
     
     fref = f;
     
+    printf("Basic block stuff.\n");
     // Construct the basic block - one entry, one exit. Basic string of instructions
     BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
     // Store a reference of the current basic block

@@ -89,10 +89,17 @@ int DeclNode::getVal(){
 
 Value* DeclNode::codegen(){
     
+    printf("DeclNode Codegen()\n");
+    
     if(lhs) {
+        printf("LHS Codegen (DeclNode)\n");
+        printf("LHS is of type: %s\n", lhs->getNodeType());
         lhs->codegen();
     }
+    
     if(rhs) {
+        printf("RHS Codegen (DeclNode)\n");
+        printf("RHS is of type: %s\n", rhs->getNodeType());
         rhs->codegen();
     }
 }
@@ -245,8 +252,8 @@ Value* ReturnNode::codegen(){
 /***************************** VARDECL NODE **********************************/
 
 
-VarDeclNode::VarDeclNode(const char* ty, const char* na, ExprNode* va = nullptr, bool global = false) :
-                        type(ty), name(na), value(va), isGlobal(global) {
+VarDeclNode::VarDeclNode(const char* ty, const char* na, ExprNode* va = nullptr) :
+                        type(ty), name(na), value(va) {
 }
 
 VarDeclNode::~VarDeclNode(){
@@ -314,9 +321,6 @@ Value* VarDeclNode::codegen() {
     
     std::string name(getName());
     
-    if(isGlobal)
-        return codegenGlobalVar();
-    
     NamedValues[name] = builder.CreateAlloca(getLLVMType(), 0, name);
     
     if(value) {
@@ -334,11 +338,6 @@ Value* VarDeclNode::codegen() {
     // return builder.CreateAlloca(Type::getInt32Ty(TheContext), 0, name.c_str());
     
 // }
-
-Value* VarDeclNode::codegenGlobalVar(){
-    GlobalVariable* gv = new GlobalVariable(getLLVMType(), false, GlobalVariable::CommonLinkage, 0, Twine(getName()));
-    // gv->setInitializer(value->codegen());
-}
 
 Type* VarDeclNode::getLLVMType(){
     if(strcmp(getType(), "int") == 0){
@@ -460,11 +459,16 @@ void ProgramNode::compile(){
 
 Value* ProgramNode::codegen() {
     
+    printf("Beginning codegen in ProgramNode.\n");
+    std::string name(getName());
+    printf("The name of the module will be: %s\n", name.c_str());
     // We're at the top of the AST -> get a new module to build.
-    TheModule = new Module(std::string(getName()), TheContext);
+    TheModule = new Module(name, TheContext);
     
+    printf("Are we breaking here?\n");
     // If we're not the only node, call codegen on the rest of the tree
     if(start)
+        printf("breaking\n");
         start->codegen();
     
     printf("PRINTING BLOCKS:\n");
@@ -480,8 +484,6 @@ Value* ProgramNode::codegen() {
         }
     }
     printf("\u001b[0m");
-    
-    
     
     // Once the module is built, compile llvm IR to object code.
     compile();

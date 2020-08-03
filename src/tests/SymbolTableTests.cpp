@@ -37,21 +37,17 @@ The example I'm trying to build:
 
 */
 
+
+
+
+
 int main() {
+    SymbolTable* st = new SymbolTable(nullptr);
+    SymbolTable scopedst = new SymbolTable(st);
     
-    // Make symbol tables
-    GlobalSymbolTable* globalSymbolTable = new GlobalSymbolTable();
-    ScopedSymbolTable* scopedSymbolTable = new ScopedSymbolTable(globalSymbolTable);
-    ScopedSymbolTable* evenScopierTable1 = new ScopedSymbolTable(scopedSymbolTable);
-    ScopedSymbolTable* evenScopierTable2 = new ScopedSymbolTable(scopedSymbolTable);
+    std::string* type = new std::string("int");
+    std::string* name = new std::string("main");
     
-    // Make variables
-    VarDeclNode* x = new VarDeclNode("int", "x", new IntegerNode(1));
-    VarDeclNode* y = new VarDeclNode("int", "y", new IntegerNode(2));
-    VarDeclNode* z = new VarDeclNode("int", "z", new IntegerNode(3));
-    VarDeclNode* z2 = new VarDeclNode("int", "z", new IntegerNode(4));
     
-    // Make function
-    FuncPrototype* fp = new FuncPrototype(std::string("int"), std::string("main"));
-    FuncDeclNode* f = new FuncDeclNode(fp, nullptr, nullptr);
+    FuncPrototype* fp = new FuncPrototype(*type, *name, {});
 }

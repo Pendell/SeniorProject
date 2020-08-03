@@ -2,8 +2,6 @@
  * I have a great grasp on how to use Bison and Flex to get
  * everything I need lined up, but we'll see how it goes. */
 
-/* THIS LINE IS TO TEST SOMETHING IN GIT */
-/* Second test line for git, should have ssh working now */
 
 /* Prologue ******************************************************************
 * The prologue section is where we do basic, C-style includes, defines       *
@@ -11,6 +9,9 @@
 * section over to the actual C++ file that Bison creates, line for line.     *
 *****************************************************************************/
 %{ 
+
+    
+    
     #include "./nodes/node.h"
     
     #include <iostream>
@@ -32,15 +33,11 @@
     
     ASTNode* scan(const char* target, SymbolTable* st);
     
-    // A vector of pairs
-    // -> Position in Vector = Index of argument in func prototype
-    // -> The pair of string are type and name of variable (ie "int" "x")
-    
+    // Some bookkeeping stuff
     static std::stack<SymbolTable*> symStack;
-    static std::vector<std::pair<std::string, std::string>*> params;
+    static std::stack<StmtList*> stmtStack;
     static std::vector<ExprNode*> args;
-    static FuncPrototype* protoRef;
-    
+    static std::vector<std::pair<std::string, std::string>*> params;
 %} 
 
 
@@ -66,14 +63,14 @@
     MutateVarNode* mutVar;
     BoolExprNode* boolEx;
     FCallNode* fCall;
+    FuncPrototype* proto;
     Parameter* param;
     VarDeclNode* vDecl;
+    GlobalVarDeclNode* gvDecl;
+    FuncDeclNode* fDecl;
     IfNode* ifNode;
     ForNode* forNode;
     DoWhileNode* dwNode;
-    
-    
-    std::pair<std::string, std::string>* pairs;
     
     // Nodes
     ExprNode* expr;
@@ -111,12 +108,17 @@
 %type<ifNode>   ifLoop
 %type<forNode>  forLoop
 
+%type<proto>    fProto
+
 %type<mutVar>   varMutate
 %type<op>       binaryOp boolOp unaryOp
 %type<stmt>     stmt exprStmt loop initStmt
 %type<stmtList> stmtList 
 %type<string>   typeSpecifier
-%type<decl>     declList declaration varDecl funcDecl param
+%type<gvDecl>   globalVarDecl
+%type<vDecl>    varDecl
+%type<fDecl>    funcDecl
+%type<decl>     declList declaration param
 %type<program>  program
 %type<rtrn>     returnStmt
 
@@ -179,7 +181,7 @@
 *****************************************************************************/
 %% 
 
-program:       { symStack.push(new GlobalSymbolTable()); } declList { program->start = $2; }
+program:       { symStack.push(new SymbolTable(nullptr)); } declList { program->start = $2; }
 ;
 
 declList:       declaration declList {
@@ -189,22 +191,37 @@ declList:       declaration declList {
 |               %empty { $$ = nullptr; }
 ;
 
-declaration:    funcDecl { symStack.top()->add($1); // Full function declaration and definition }
-|               fProto   { symStack.top()->add($1); // Declaration of function prototype }
-|               gVarDecl { symStack.top()->add($1); // Declaring a global variable }
+declaration:    funcDecl { symStack.top()->add($1); }
+|               fProto   { symStack.top()->add($1); }
+|               globalVarDecl { symStack.top()->add($1); }
 ;
 
-funcDecl:       typeSpecifier ID "{" stmtList "}" {
-                    symStack.top()->lookup(*$2);
+funcDecl:       fProto { 
+                    FuncDeclNode* find = symStack.top()->func_lookup(*$1);
+                    if(find) {
+                        printf("%s already defined.", find->getName());
+                    } else {
+                        stmtStack.push(new StmtList);
+                        symStack.push(new SymbolTable(symStack.top()));
+                    }
+                }"{" stmtList "}" {
+                    $$ = new FuncDeclNode($1, stmtStack.top(), symStack.top());
+                    stmtStack.pop();
+                    symStack.pop();
                 }
 ;
 
-gVarDecl:       typeSpecifier ID ";" {
-                    
+fProto:         typeSpecifier ID "(" paramDelim ")" {
+                    printf("Fproto name: %s\n", $2->c_str());
+                    printf("Fproto type: %s\n", $1->c_str());
+                    FuncPrototype* fp = new FuncPrototype(new std::string($1->c_str()), new std::string($2->c_str()), params);
+                    if(!symStack.top()->get(fp))
+                        symStack.top()->add(fp);
+                    params.clear();
                 }
-|               typeSpecifier ID "=" expr ";" {
-                    
-                }
+
+globalVarDecl:  typeSpecifier ID ";" 
+|               typeSpecifier ID "=" expr ";" 
 ;
 
 paramDelim:     paramList
@@ -219,7 +236,7 @@ param:          typeSpecifier ID {
                     std::string type($1->c_str());
                     std::string name($2->c_str());
                     params.push_back(new std::pair<std::string, std::string>(type, name));
-                    symStack.top()->push_back(new VarDeclNode($1->c_str(), $2->c_str()));
+                    symStack.top()->add(new VarDeclNode($1->c_str(), $2->c_str(), nullptr));
                 } 
 ;
 
@@ -254,19 +271,11 @@ varDecl:        typeSpecifier ID "=" expr {
                     const char* name = $2->c_str();
                     
                     // Check the symbol table for the variable
-                    SymbolTable::iterator it = ST->begin();
-                    
-                    while(it != ST->end()){
-                        if(strcmp((*it)->getName(), name) == 0) {
-                            printf("Variable %s already declared\n", name);
-                            return 1;
-                        } else {
-                        }
-                        ++it;
+                    VarDeclNode* find = symStack.top()->local_lookup(*$2);
+                    if(!find) {
+                        $$ = new VarDeclNode($1->c_str(), $2->c_str(), $4);
+                        symStack.top()->add($$); 
                     }
-                    
-                    $$ = new VarDeclNode($1->c_str(), $2->c_str(), $4);
-                    symStack.top()->push_back($$); 
                 } 
                 
 |               typeSpecifier ID {
@@ -274,19 +283,11 @@ varDecl:        typeSpecifier ID "=" expr {
                     const char* name = $2->c_str();
                     
                     // Check the symbol table for the variable
-                    SymbolTable::iterator it = ST->begin();
-                    
-                    while(it != ST->end()){
-                        if(strcmp((*it)->getName(), name) == 0) {
-                            printf("Variable %s already declared\n", name);
-                            return 1;
-                        } else {
-                        }
-                        ++it;
+                    VarDeclNode* find = symStack.top()->local_lookup(*$2);
+                    if(!find) {
+                        $$ = new VarDeclNode($1->c_str(), $2->c_str(), nullptr);
+                        symStack.top()->add($$); 
                     }
-                    
-                    $$ = new VarDeclNode($1->c_str(), $2->c_str());
-                    symStack.top()->push_back($$);
                 }
 ;
 
@@ -495,18 +496,4 @@ typeSpecifier:  "int" { $$ = new std::string("int"); }
 
 ASTNode* scan(const char* target, SymbolTable* st) {
 
-    SymbolTable::iterator it = st->begin();
-    while(it != st->end()) {
-        if(strcmp((*it)->getName(), target) == 0) {
-            
-            if((*it)->value)
-                printf("Value at %s = %d\n", target, (*it)->getVal());
-            
-            return (*it);
-        }
-        
-        ++it;
-    }
-    
-    return nullptr;
 }

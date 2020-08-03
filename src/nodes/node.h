@@ -49,81 +49,88 @@ using namespace llvm;
 // Forward Declarations
 class DeclNode;
 class VarDeclNode;
+class GlobalVarDeclNode;
 class ASTNode;
 
 class VarDeclNode;
 class FuncDeclNode;
+class FuncPrototype;
 
+
+
+/* the SymbolTable class is the base class for GlobalSymbolTabe and
+ * ScopedSymbolTable. 
+ */
 class SymbolTable {
     
+  protected:
     SymbolTable* parent;
+    std::vector<VarDeclNode*> vars;
+    std::map<FuncPrototype*, FuncDeclNode*> funcs;
     
-  public:  
+  public:
+    
     SymbolTable(SymbolTable* p);
     ~SymbolTable();
     
-    // Returns the parent of this symbol table
-    virtual SymbolTable* getParent() = 0;
-    virtual VarDeclNode* get(std::string n) = 0;
-    
-};
-
-class GlobalSymbolTable : public SymbolTable {
-    
-  private:
-    std::vector<FuncDeclNode*> functions;
-    std::vector<VarDeclNode*> globalvars;
-    
-  public:
-    
-    GlobalSymbolTable();
-    ~GlobalSymbolTable();
-    
     int size_funcs();
-    int size_vars();
-    
-
-    // Finds any entities with the name 'n' in either funcs or gvars.
-    // returns the index if found, -1 if not found.
-    int func_lookup(std::string n);
-    int lookup(std::string n);
-    
-    // Tries to add the DeclNode* to the respective symbol table.
-    // returns true if added successfully, false otherwise.
-    bool add(FuncDeclNode* f);
-    bool add(VarDeclNode* v);
-    
-    
-    // Tries to grab the function or variable with the name 'n'
-    // returns the DeclNode* if found, nullptr o/w.
-    FuncDeclNode* get_func(std::string n);
-    VarDeclNode* get(std::string n);
-    
-    bool isEqual(GlobalSymbolTable* o); // Not yet implemented
-    
-};
-
-class ScopedSymbolTable : public SymbolTable {
-    
-  private:
-    std::vector<VarDeclNode*> vars;
-    
-  public:
-    
-    ScopedSymbolTable(SymbolTable* p);
-    ~ScopedSymbolTable();
-  
     int size();
     
-    int lookup(std::string n, bool lookGlobally);
+    FuncDeclNode* func_lookup(const FuncPrototype& fp);
+    VarDeclNode* local_lookup(std::string n);
+    VarDeclNode* global_lookup(std::string n);
     
-    void add();
+    SymbolTable* getParent();
+    bool add(VarDeclNode* v);
+    bool add(FuncDeclNode* f);
+    bool add(FuncPrototype* fp);
     
+    FuncDeclNode* get(FuncPrototype* fp);
     VarDeclNode* get(std::string n);
     
-    bool isEqual(ScopedSymbolTable* o);
+    void dump();
+    
+    bool isEqual(SymbolTable* o);
     
 }; 
+// class GlobalSymbolTable : public SymbolTable {
+    
+  // protected:
+    // std::vector<FuncDeclNode*> functions;
+    
+  // public:
+    
+    // GlobalSymbolTable();
+    // ~GlobalSymbolTable();
+    
+    // int size_funcs();
+    // int size();
+    
+    // // Finds any entities with the name 'n' in either funcs or gvars.
+    // // returns the index if found, -1 if not found.
+    // int lookup_func(std::string n);
+    // int local_lookup(std::string n);
+    // int global_lookup(std::string n);
+    
+    // // Tries to add the DeclNode* to the respective symbol table.
+    // // returns true if added successfully, false otherwise.
+    // bool add(FuncDeclNode* f);
+    // bool add(VarDeclNode* v);
+    
+    // SymbolTable* getParent();
+    
+    // // Tries to grab the function or variable with the name 'n'
+    // // returns the DeclNode* if found, nullptr o/w.
+    // FuncDeclNode* get_func(std::string n);
+    // FuncDeclNode* get_func(int idx);
+    // VarDeclNode* get(std::string n);
+    // VarDeclNode* get(int idx);
+    
+    // bool isEqual(GlobalSymbolTable* o); // Not yet implemented
+    
+// };
+
+
 
 // TheContext = object that accesses much of the core llvm data structures
 static LLVMContext TheContext;
@@ -435,23 +442,21 @@ class LoadVarNode : public ExprNode {
 };
 
 
+
+
 /* VariableDeclarationNode
  * for creating nodes containing variable declarations
  */
 class VarDeclNode : public DeclNode {
     
-    bool init = false;
-    bool isGlobal = false;
-    
-  public:
+  protected:
     
     const char* type; 
     const char* name;
-    
     ExprNode* value = nullptr;
     
-    VarDeclNode(const char* ty, const char* na, ExprNode* va, bool global);
-    
+  public:
+    VarDeclNode(const char* ty, const char* na, ExprNode* va);
     ~VarDeclNode();
     
     // Returns the typing of the data stored -- NOT the type of the node
@@ -466,12 +471,32 @@ class VarDeclNode : public DeclNode {
     //void accept(Visitor* v);
     
     virtual Value* codegen();
-    virtual Value* codegenGlobalVar();
     
     Type* getLLVMType();
     
 };
 
+class GlobalVarDeclNode : public VarDeclNode {
+  
+  public: 
+    GlobalVarDeclNode(const char* ty, const char* na, ExprNode* va);
+    ~GlobalVarDeclNode();
+    
+    // Returns the type of the data stored -- NOT the type of the node
+    const char* getType();
+    const char* getName();
+    
+    int getVal();
+    
+    const char* getNodeType();
+    bool equals(ASTNode* node);
+    
+    //void accept(Visitor* v);
+    
+    virtual Value* codegen();
+    
+    Type* getLLVMType();
+};
 // Function Calls
 class FCallNode : public ExprNode {
   
@@ -509,7 +534,7 @@ class FuncPrototype {
     std::string name;
     std::vector<std::pair<std::string, std::string>*> args;
     
-    FuncPrototype(std::string& t, std::string& n, std::vector<std::pair<std::string, std::string>*> a);
+    FuncPrototype(std::string* t, std::string* n, std::vector<std::pair<std::string, std::string>*> a);
     ~FuncPrototype();
     
     const char* getType();
@@ -518,6 +543,8 @@ class FuncPrototype {
     const char* getNodeType();
     
     Function* codegen();
+    
+    bool operator==(FuncPrototype& rhs) const;
     
 };
 
@@ -545,6 +572,7 @@ class FuncDeclNode : public DeclNode {
     const char* getType();
     const char* getName();
     const char* getNodeType();
+    FuncPrototype* getProto();
     bool equals(ASTNode* node);
     //void accept(Visitor* v);
     

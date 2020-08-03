@@ -134,6 +134,8 @@ int main(int argc, char** argv){
         // TheModule = std::make_unique<Module>(std::string(argv[1]), TheContext);
         
         program = new ProgramNode(argv[1]);
+        printf("Program name is: ");
+        printf("%s\n", program->getName());
         
         if(yyparse() == 0) {
             
