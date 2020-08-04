@@ -88,8 +88,6 @@ class SymbolTable {
     FuncDeclNode* get(FuncPrototype* fp);
     VarDeclNode* get(std::string n);
     
-    void dump();
-    
     bool isEqual(SymbolTable* o);
     
 }; 
@@ -143,6 +141,7 @@ static Module* TheModule;
 
 // An llvm-implemented symbol table
 static std::map<std::string, AllocaInst*> NamedValues;
+static std::map<std::string, GlobalVariable*> Globals;
 
 // Keep a reference of the current basic block.
 static BasicBlock* bbreference;
@@ -388,7 +387,22 @@ class ForNode : public StmtNode {
 };
 
 /****************************** STATEMENTS ***********************************/
-class MutateVarNode : public StmtNode {
+
+/// Mutators
+class Mutator : public StmtNode {
+  private:
+    VarDeclNode* lhs;
+    ExprNode* rhs;
+  public:
+    Mutator() {}
+    ~Mutator() {}
+  protected:
+    virtual const char* getNodeType() = 0;
+    virtual Value* codegen() = 0;
+    
+};
+
+class MutateVarNode : public Mutator {
     
   public:
   
@@ -400,8 +414,20 @@ class MutateVarNode : public StmtNode {
     
     
     const char* getNodeType();
-    
     virtual Value* codegen();
+};
+
+class MutateGlobalNode : public Mutator {
+  public:
+    GlobalVarDeclNode* lhs;
+    ExprNode* rhs;
+    
+    MutateGlobalNode(VarDeclNode* v, ExprNode* val);
+    ~MutateGlobalNode();
+    
+    const char* getNodeType();
+    virtual Value* codegen();
+
 };
 
 
@@ -441,7 +467,19 @@ class LoadVarNode : public ExprNode {
 
 };
 
+class LoadGlobalNode : public ExprNode {
+  private:
+    GlobalVarDeclNode* global;
+    
+  public:
+    LoadGlobalNode(VarDeclNode* g);
+    ~LoadGlobalNode();
+    
+    const char* getNodeType();
+    const char* getName();
+    virtual Value* codegen();
 
+};
 
 
 /* VariableDeclarationNode
@@ -477,6 +515,8 @@ class VarDeclNode : public DeclNode {
 };
 
 class GlobalVarDeclNode : public VarDeclNode {
+  private:
+    GlobalVariable* gv;
   
   public: 
     GlobalVarDeclNode(const char* ty, const char* na, ExprNode* va);
@@ -490,7 +530,7 @@ class GlobalVarDeclNode : public VarDeclNode {
     
     const char* getNodeType();
     bool equals(ASTNode* node);
-    
+    Value* get();
     //void accept(Visitor* v);
     
     virtual Value* codegen();

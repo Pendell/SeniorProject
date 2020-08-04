@@ -1,7 +1,9 @@
 #include "node.cpp"
 
 #include "MutateVarNode.cpp"
+#include "MutateGlobalNode.cpp"
 #include "LoadVarNode.cpp"
+#include "LoadGlobalNode.cpp"
 
 #include "IfNode.cpp"
 #include "ForNode.cpp"

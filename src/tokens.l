@@ -65,7 +65,6 @@
 
 [0-9]+                          { SAVE_TOKEN; return NUMCONST; }
 [a-zA-Z_][a-zA-Z0-9_]*          { SAVE_TOKEN; return ID; }
-[[:alnum:]]                     { SAVE_TOKEN; return CHARCONST;}  
 .|\n|\t                         { /* pass over bad characters for now */ }
 
 %%

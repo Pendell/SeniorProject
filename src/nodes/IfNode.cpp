@@ -19,7 +19,7 @@ Value* IfNode::codegen(){
     Value* v = bExpr->codegen();
     
     if(!v){
-        printf("Bad v\n");
+        printf("Bad Expression Codegen\n");
         return nullptr;
     }
         

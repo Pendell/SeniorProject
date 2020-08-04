@@ -16,8 +16,8 @@ nodes.o:
 visitor.o:
 	g++ -c ./visitor/visitor.cpp $(LLVM_VAR2) -o ./build/visitor.o -std=c++14
 
-tests: nodes.o
-	g++ build/nodes.o tests/SymbolTableTests.cpp $(LLVM_VAR2) -o SymbolTableTest
+tests: compiler
+	g++ tests_driver.cpp -o testgcc
 
 parser.cpp parser.hpp: parser.y
 	bison -d -o parser.cpp parser.y --report=all
@@ -26,5 +26,5 @@ tokens.cpp: tokens.l parser.hpp
 	flex -o tokens.cpp tokens.l
 
 clean:
-	rm -f tokens.cpp parser.cpp parser.hpp compiler node.h.gch parser.output nodeTest src.h.gch ./build/*.o
+	rm -f testgcc tokens.cpp parser.cpp parser.hpp compiler node.h.gch parser.output nodeTest src.h.gch ./build/*.o
 	

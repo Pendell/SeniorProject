@@ -10,8 +10,6 @@
 *****************************************************************************/
 %{ 
 
-    
-    
     #include "./nodes/node.h"
     
     #include <iostream>
@@ -61,6 +59,9 @@
     BinaryOpNode* binaryOp;
     UnaryOpNode* unaryOp;
     MutateVarNode* mutVar;
+    
+    Mutator* mut;
+    
     BoolExprNode* boolEx;
     FCallNode* fCall;
     FuncPrototype* proto;
@@ -110,7 +111,7 @@
 
 %type<proto>    fProto
 
-%type<mutVar>   varMutate
+%type<mut>      varMutate
 %type<op>       binaryOp boolOp unaryOp
 %type<stmt>     stmt exprStmt loop initStmt
 %type<stmtList> stmtList 
@@ -215,8 +216,6 @@ fProto:         typeSpecifier ID "(" paramDelim ")" {
                     // NOTE: $1 and $2 are std::string* <--- pointers to std::strings(char*)
                     std::string name($2->c_str());
                     std::string type($1->c_str());
-                    printf("Fproto name: %s\n", name.c_str());
-                    printf("Fproto type: %s\n", type.c_str());
                     FuncPrototype* fp = new FuncPrototype(type, name, params);
                     if(!symStack.top()->get(fp)) {
                         symStack.top()->add(fp);
@@ -227,8 +226,24 @@ fProto:         typeSpecifier ID "(" paramDelim ")" {
                     params.clear();
                 }
 
-globalVarDecl:  typeSpecifier ID ";" 
-|               typeSpecifier ID "=" expr ";" 
+globalVarDecl:  typeSpecifier ID ";" {
+                    VarDeclNode* find = symStack.top()->global_lookup(*$2);
+                    if(!find) {
+                        $$ = new GlobalVarDeclNode($1->c_str(), $2->c_str(), nullptr);
+                        symStack.top()->add($$);
+                    } else {
+                        printf("%s already declared.\n", $2->c_str());
+                    }
+                }
+|               typeSpecifier ID "=" expr ";" {
+                    VarDeclNode* find = symStack.top()->global_lookup(*$2);
+                    if(!find) {
+                        $$ = new GlobalVarDeclNode($1->c_str(), $2->c_str(), $4);
+                        symStack.top()->add($$);
+                    } else {
+                        printf("%s already declared.\n", $2->c_str());
+                    }
+                }
 ;
 
 paramDelim:     paramList
@@ -304,42 +319,46 @@ loop:           ifLoop
 ;
 
 doWhileLoop:    "do" "{" {
+                    symStack.push(new SymbolTable(symStack.top()));
                     stmtStack.push(new StmtList);
                 } stmtList "}" "while" "(" boolExpr ")" ";" {
                     StmtList* s = stmtStack.top();
                     $$ = new DoWhileNode(s, 'd', $8);
+                    symStack.pop();
                     stmtStack.pop();
                     
                 }
                 
 |               "while" "(" boolExpr ")" "{" {
+                    symStack.push(new SymbolTable(symStack.top()));
                     stmtStack.push(new StmtList);
                 } stmtList "}" {
                     StmtList* s = stmtStack.top();
                     $$ = new DoWhileNode(s, 'w', $3);
                     stmtStack.pop();
+                    symStack.pop();
                 }
 ;
 
 ifLoop:         "if" "(" boolExpr ")" "{" {
                     stmtStack.push(new StmtList);
-                
+                    symStack.push(new SymbolTable(symStack.top()));
                 } stmtList "}" {
                     StmtList* s = stmtStack.top();
                     $$ = new IfNode($3, s);
                     stmtStack.pop();
-                    
+                    symStack.pop();
                 }
 ;
 
 forLoop:        "for" "(" initStmt ";" boolExpr ";" stmt ")" "{" {
                     stmtStack.push(new StmtList);
-                    
+                    symStack.push(new SymbolTable(symStack.top()));
                 } stmtList "}" {
                     StmtList* s = stmtStack.top();
                     $$ = new ForNode($3, $5, $7, s);
                     stmtStack.pop();
-                    
+                    symStack.pop();
                 }
 ;
 
@@ -348,52 +367,54 @@ initStmt:       varDecl
 ;
 
 varMutate:      ID "=" expr  {
-                    // Scan the symbol table for the variable, if it doesn't exist, error
-                    const char* name = $1->c_str();
-                    ASTNode* target = scan(name, symStack.top());
-                    if(target){
-                        VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
-                        $$ = new MutateVarNode(var, $3);
-                        
-                        
+
+                    VarDeclNode* find = symStack.top()->global_lookup(*$1);
+                    if(!find) {
+                        printf("Variable %s not declared.\n", $1->c_str());
+                        exit(99);
                     } else {
-                        printf("Variable %s not declared\n", name);
-                        
+                        if(strcmp(find->getNodeType(), "GlobalVarDeclNode") == 0) {
+                            $$ = new MutateGlobalNode(find, $3);
+                        } else {
+                            $$ = new MutateVarNode(find, $3);
+                        }
                     }
                 
                 }
+                
 |               ID unaryOp {
-                    // Scan the symbol table for the variable, if it doesn't exist, error
-                    const char* name = $1->c_str();
-                    
                     ExprNode* rhs;
-                    
-                    ASTNode* target = scan(name, symStack.top());
-                    if(target){
-                        rhs = new BinaryOpNode($2, new LoadVarNode(name), new IntegerNode(1));
-                        
-                        VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
-                        
-                        $$ = new MutateVarNode(var, rhs);
+                    VarDeclNode* find = symStack.top()->global_lookup(*$1);
+                    const char* name = $1->c_str();
+                    if(!find) {
+                        printf("Variable %s not declared.\n", $1->c_str());
+                        exit(99);
                     } else {
-                        printf("Variable %s not declared\n", name);
+                        if(strcmp(find->getNodeType(), "GlobalVarDeclNode") == 0) {
+                            rhs = new BinaryOpNode($2, new LoadGlobalNode(find), new IntegerNode(1));
+                            $$ = new MutateGlobalNode(find, rhs);
+                        } else {
+                            rhs = new BinaryOpNode($2, new LoadVarNode(name), new IntegerNode(1));
+                            $$ = new MutateVarNode(find, rhs);
+                        }
                     }
+                    
                 }
 |               unaryOp ID {
-                    // Scan the symbol table for the variable, if it doesn't exist, error
-                    const char* name = $2->c_str();
-                    
                     ExprNode* rhs;
-                    
-                    ASTNode* target = scan(name, symStack.top());
-                    if(target){
-                        rhs = new BinaryOpNode($1, new LoadVarNode(name), new IntegerNode(1));
-                        
-                        VarDeclNode* var = dynamic_cast<VarDeclNode*>(target);
-                        
-                        $$ = new MutateVarNode(var, rhs);
+                    VarDeclNode* find = symStack.top()->global_lookup(*$2);
+                    const char* name = $2->c_str();
+                    if(!find) {
+                        printf("Variable %s not declared.\n", $2->c_str());
+                        exit(99);
                     } else {
-                        printf("Variable %s not declared\n", name);
+                        if(strcmp(find->getNodeType(), "GlobalVarDeclNode") == 0) {
+                            rhs = new BinaryOpNode($1, new LoadGlobalNode(find), new IntegerNode(1));
+                            $$ = new MutateGlobalNode(find, rhs);
+                        } else {
+                            rhs = new BinaryOpNode($1, new LoadVarNode(name), new IntegerNode(1));
+                            $$ = new MutateVarNode(find, rhs);
+                        }
                     }
                 }
 ;
@@ -411,16 +432,15 @@ expr:           funcCall
 |               binaryOpExpr
 |               unaryOpExpr
 |               ID {
-                    const char* name = $1->c_str();
-                    ASTNode* target = scan(name, symStack.top());
-                    
-                    // find the variable 
-                    if(target){
-                        $$ = new LoadVarNode(name);
-                        
+                    VarDeclNode* find = symStack.top()->global_lookup(*$1);
+                    if(!find){
+                        printf("%s not declared.\n", $1->c_str());
                     } else {
-                        printf("\u001b[31mVariable %s not declared.\n \u001b[0m", name);
-                        
+                        if(strcmp(find->getNodeType(), "GlobalVarDeclNode") == 0) {
+                            $$ = new LoadGlobalNode(find);
+                        } else {
+                            $$ = new LoadVarNode($1->c_str());
+                        }
                     }
                 }
 ;

@@ -112,18 +112,14 @@ bool FuncDeclNode::equals(ASTNode* node) {
 
 Value* FuncDeclNode::codegen() {
     
-    printf("Beginning codegen in FuncDeclNode.\n");
     
     FuncPrototype* fproto = getProto();
-    if(fproto) {
-        printf("This function has a prototype.\n");
-        printf("The name is: %s", fproto->getName()); 
-    } else
-        printf("This function's prototype not defined.\n");
     
+    if(!fproto) {
+        printf("Function missing prototype... exiting\n");
+        exit(99);
+    }
     
-    
-    printf("This functions name is: %s\n", getName());
     Function* f = TheModule->getFunction(std::string(getName()));
     
     if(!f)
@@ -137,7 +133,6 @@ Value* FuncDeclNode::codegen() {
     
     fref = f;
     
-    printf("Basic block stuff.\n");
     // Construct the basic block - one entry, one exit. Basic string of instructions
     BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
     // Store a reference of the current basic block

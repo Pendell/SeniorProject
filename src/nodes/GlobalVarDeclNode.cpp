@@ -31,11 +31,15 @@ bool GlobalVarDeclNode::equals(ASTNode* node) {
     printf("GlobalVarDeclNode equals not yet implemented; returning false\n");
     return false;
 }
- 
+
+Value* GlobalVarDeclNode::get() {
+    return gv;
+}
 
 Value* GlobalVarDeclNode::codegen() {
-    GlobalVariable* gv = new GlobalVariable(*TheModule, getLLVMType(), false, GlobalVariable::CommonLinkage, 0, Twine("globalvar"));
+    gv = new GlobalVariable(*TheModule, getLLVMType(), false, GlobalVariable::ExternalLinkage, 0, Twine(name));
     gv->setInitializer((Constant*)value->codegen());
+    Globals[std::string(name)] = gv;
 }
 
 Type* GlobalVarDeclNode::getLLVMType() {

@@ -36,7 +36,6 @@ Value* DoWhileNode::whilecodegen(){
     // inserting in condition
     Value* exit_val = exit_cond->codegen();
     
-    
     BasicBlock* on_true = BasicBlock::Create(TheContext, "true", fref);
     BasicBlock* on_false = BasicBlock::Create(TheContext, "false", fref);
     

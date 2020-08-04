@@ -89,17 +89,12 @@ int DeclNode::getVal(){
 
 Value* DeclNode::codegen(){
     
-    printf("DeclNode Codegen()\n");
     
     if(lhs) {
-        printf("LHS Codegen (DeclNode)\n");
-        printf("LHS is of type: %s\n", lhs->getNodeType());
         lhs->codegen();
     }
     
     if(rhs) {
-        printf("RHS Codegen (DeclNode)\n");
-        printf("RHS is of type: %s\n", rhs->getNodeType());
         rhs->codegen();
     }
 }
@@ -389,7 +384,6 @@ const char* ProgramNode::getName() {
 
 void ProgramNode::compile(){
     
-    
     auto TargetTriple = sys::getDefaultTargetTriple();
     InitializeAllTargetInfos();
     InitializeAllTargets();
@@ -459,31 +453,14 @@ void ProgramNode::compile(){
 
 Value* ProgramNode::codegen() {
     
-    printf("Beginning codegen in ProgramNode.\n");
     std::string name(getName());
-    printf("The name of the module will be: %s\n", name.c_str());
     // We're at the top of the AST -> get a new module to build.
     TheModule = new Module(name, TheContext);
     
-    printf("Are we breaking here?\n");
     // If we're not the only node, call codegen on the rest of the tree
     if(start)
-        printf("breaking\n");
         start->codegen();
     
-    printf("PRINTING BLOCKS:\n");
-    for (auto &funct : *TheModule) {
-        for (auto &basic_block : funct) {
-            StringRef bbName(basic_block.getName());
-            errs() << "BasicBlock: "  << bbName << "\n";
-            Instruction* i = basic_block.getTerminator();
-            if(!i) {
-                printf("No termination - Inserting return manually.\n");
-                builder.CreateRet(ConstantInt::get(TheContext, APInt(32, 0)));
-            }
-        }
-    }
-    printf("\u001b[0m");
     
     // Once the module is built, compile llvm IR to object code.
     compile();

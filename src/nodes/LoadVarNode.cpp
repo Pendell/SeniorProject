@@ -16,6 +16,7 @@ const char* LoadVarNode::getNodeType(){
 Value* LoadVarNode::codegen() {
     
     std::string name(getName());
+    
     return builder.CreateLoad(NamedValues[name]);
     
 }

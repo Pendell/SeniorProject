@@ -4,10 +4,6 @@
 MutateVarNode::MutateVarNode(VarDeclNode* v, ExprNode* val) {
     lhs = v;
     rhs = val;
-    printf("LHS type: %s\n", lhs->getNodeType());
-    printf("RHS type: %s\n", rhs->getNodeType());
-    
-    printf("Mutating the variable: %s\n", lhs->getName());
     
 }
 
