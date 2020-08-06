@@ -22,7 +22,8 @@ Value* IfNode::codegen(){
         printf("Bad Expression Codegen\n");
         return nullptr;
     }
-        
+    
+    
     Function* f = builder.GetInsertBlock()->getParent();
     
     BasicBlock* thenblock = BasicBlock::Create(TheContext, "then", f);

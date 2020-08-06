@@ -108,9 +108,9 @@ int main() {
     // Print the pretty stuff out.
     printf("\n");
     printf("o===================== TEST RESULTS =====================o\n");
-    printf("FileNo\tACCResult GCCResult\tPass?\tFileName\n");
+    printf("FileNo.\t\tACCResult \tGCCResult\t\tPass?\tFileName\n");
     for(int i = 0; i < dirvect.size(); i++){
-        printf("  %d\t   %d\t     %d\t\t", i, accresults[i], gccresults[i]);
+        printf("  %d\t\t   %d\t     %d\t\t\t", i, accresults[i], gccresults[i]);
         if(accresults[i] == gccresults[i])
             printf("\u001b[32mPASS\t\u001b[0m");
         else

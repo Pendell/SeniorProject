@@ -1,9 +1,10 @@
 #include "node.h"
+
 /// SYMBOL TABLES //////////////////////////////////////////////////////
 SymbolTable::SymbolTable(SymbolTable* p){
     parent = p;
-    vars = {};
-    funcs = {};
+    vars = { };
+    funcs = { };
 }
 
 SymbolTable::~SymbolTable(){
@@ -36,6 +37,15 @@ VarDeclNode* SymbolTable::local_lookup(std::string n) {
     }
     return nullptr;
 }
+
+// int SymbolTable::getIdx(std::string n) {
+    // for(int i = 0; i < vars.size(); i++) {
+        // if(strcmp(n.c_str(), vars[i]->getName()) == 0) {
+            // return i;
+        // }
+    // }
+    // return -1;
+// }
 
 VarDeclNode* SymbolTable::global_lookup(std::string n){
     for(int i = 0; i < vars.size(); i++) {
@@ -73,7 +83,7 @@ bool SymbolTable::add(FuncDeclNode* f) {
     }
 }
 
-bool SymbolTable::add(FuncPrototype* fp){
+bool SymbolTable::add(FuncPrototype* fp) {
     FuncDeclNode* tmp;
     if(tmp = func_lookup(*fp)) {
         return false;
@@ -97,4 +107,28 @@ bool SymbolTable::isEqual(SymbolTable* o){
 
 SymbolTable* SymbolTable::getParent() {
     return parent;
+}
+
+AllocaInst* SymbolTable::getAllocation(std::string n){
+    std::map<std::string, AllocaInst*>::iterator it;
+    
+    if((it = allocations.find(n)) != allocations.end())
+        return it->second;
+    else if (parent)
+        return parent->getAllocation(n);
+    else
+        return nullptr;
+}
+
+void SymbolTable::dump(){
+    
+    printf("Names of allocated space in SymTable: \n");
+    
+    std::map<std::string, AllocaInst*>::iterator it = allocations.begin();
+    
+    while( it != allocations.end()) {
+        std::cout << it->first << std::endl;
+        it++;
+    }
+    
 }

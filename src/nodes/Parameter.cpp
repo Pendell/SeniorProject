@@ -1,20 +1,20 @@
 #include "node.h"
 
-Parameter::Parameter(const char* ty, const char* na) {
-    type = std::string(ty);
-    name = std::string(na);
+Parameter::Parameter(std::string ty, std::string na) {
+    type = ty;
+    name = na;
 }
 
 Parameter::~Parameter() {
 
 }
 
-const char* Parameter::getType() {
-    return type.c_str();
+std::string Parameter::getType() {
+    return type;
 }
 
-const char* Parameter::getName() {
-    return name.c_str();
+std::string Parameter::getName() {
+    return name;
 }
 
 Value* Parameter::codegen() {

@@ -15,8 +15,8 @@ const char* FCallNode::getNodeType(){
 }
 
 Value* FCallNode::codegen() {
-    
     Function* fcallee = TheModule->getFunction(callee);
+
 
     if(!fcallee) {
         printf("Bad Function Call: Name %s not found.\n", callee.c_str());
@@ -35,6 +35,6 @@ Value* FCallNode::codegen() {
         valvec.push_back(args.at(i)->codegen());
     }
     
-    return builder.CreateCall(fcallee, valvec, "call");
+    return builder.CreateCall(fcallee, valvec, callee.c_str());
     
 }

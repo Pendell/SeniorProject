@@ -1,6 +1,6 @@
 #include "node.h"
 
-FuncPrototype::FuncPrototype(std::string t, std::string n, std::vector<std::pair<std::string, std::string>*> a = {}) {
+FuncPrototype::FuncPrototype(std::string t, std::string n, std::vector<Parameter*> a = {}) {
     type = t;
     name = n;
     args = std::move(a);
@@ -25,11 +25,11 @@ const char* FuncPrototype::getNodeType() {
 }
 
 Function* FuncPrototype::codegen(){
+    
     // Vector for argument types
     std::vector<Type*> argTypes(args.size());
-    
     for(int i = 0; i < args.size(); i++){
-        if(args[i]->first == std::string("int")) {
+        if(args[i]->getType() == std::string("int")) {
             argTypes[i] = Type::getInt32Ty(TheContext);
         }
     }
@@ -46,7 +46,7 @@ Function* FuncPrototype::codegen(){
     Function* f = Function::Create(ftype, Function::ExternalLinkage, std::string(getName()), TheModule);
     unsigned idx = 0;
     for(auto &argument : f->args()) {
-        argument.setName(args[idx++]->second);
+        argument.setName(args[idx++]->getName());
     }
     
     return f;

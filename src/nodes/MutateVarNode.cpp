@@ -21,6 +21,6 @@ Value* MutateVarNode::codegen() {
     // Grab whats in the rhs.
     Value* v = rhs->codegen();
     std::string name(lhs->getName());
-    return builder.CreateStore(v, NamedValues[name]);
+    return builder.CreateStore(v, symref->allocations[name]);
     
 }

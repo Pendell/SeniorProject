@@ -63,12 +63,16 @@ class FuncPrototype;
  */
 class SymbolTable {
     
-  protected:
+  public:
     SymbolTable* parent;
     std::vector<VarDeclNode*> vars;
     std::map<FuncPrototype*, FuncDeclNode*> funcs;
     
-  public:
+    // A map of allocations
+    std::map<std::string, AllocaInst*> allocations;
+    
+    
+ 
     
     SymbolTable(SymbolTable* p);
     ~SymbolTable();
@@ -85,50 +89,17 @@ class SymbolTable {
     bool add(FuncDeclNode* f);
     bool add(FuncPrototype* fp);
     
+    AllocaInst* getAllocation(std::string n);
+    
     FuncDeclNode* get(FuncPrototype* fp);
     VarDeclNode* get(std::string n);
     
     bool isEqual(SymbolTable* o);
     
+    // Debug/temps
+    void dump();
+    
 }; 
-// class GlobalSymbolTable : public SymbolTable {
-    
-  // protected:
-    // std::vector<FuncDeclNode*> functions;
-    
-  // public:
-    
-    // GlobalSymbolTable();
-    // ~GlobalSymbolTable();
-    
-    // int size_funcs();
-    // int size();
-    
-    // // Finds any entities with the name 'n' in either funcs or gvars.
-    // // returns the index if found, -1 if not found.
-    // int lookup_func(std::string n);
-    // int local_lookup(std::string n);
-    // int global_lookup(std::string n);
-    
-    // // Tries to add the DeclNode* to the respective symbol table.
-    // // returns true if added successfully, false otherwise.
-    // bool add(FuncDeclNode* f);
-    // bool add(VarDeclNode* v);
-    
-    // SymbolTable* getParent();
-    
-    // // Tries to grab the function or variable with the name 'n'
-    // // returns the DeclNode* if found, nullptr o/w.
-    // FuncDeclNode* get_func(std::string n);
-    // FuncDeclNode* get_func(int idx);
-    // VarDeclNode* get(std::string n);
-    // VarDeclNode* get(int idx);
-    
-    // bool isEqual(GlobalSymbolTable* o); // Not yet implemented
-    
-// };
-
-
 
 // TheContext = object that accesses much of the core llvm data structures
 static LLVMContext TheContext;
@@ -145,8 +116,8 @@ static std::map<std::string, GlobalVariable*> Globals;
 
 // Keep a reference of the current basic block.
 static BasicBlock* bbreference;
-
 static Function* fref;
+static SymbolTable* symref;
 
 
 // ASTNode* LogError(const char* str){
@@ -394,11 +365,11 @@ class Mutator : public StmtNode {
     VarDeclNode* lhs;
     ExprNode* rhs;
   public:
-    Mutator() {}
-    ~Mutator() {}
+    Mutator() { }
+    ~Mutator() { }
   protected:
-    virtual const char* getNodeType() = 0;
-    virtual Value* codegen() = 0;
+    const char* getNodeType() { return "MutatorNode"; }
+    virtual Value* codegen() { printf("This shit doesn't work yet yo'!\n"); }
     
 };
 
@@ -447,7 +418,6 @@ class ReturnNode : public StmtNode {
     int getVal();
     bool equals(ASTNode* node);
     //void accept(Visitor* v);
-    
     virtual Value* codegen();
     
 };
@@ -505,7 +475,6 @@ class VarDeclNode : public DeclNode {
     
     const char* getNodeType();
     bool equals(ASTNode* node);
-    
     //void accept(Visitor* v);
     
     virtual Value* codegen();
@@ -557,11 +526,13 @@ class Parameter {
     std::string type;
     std::string name;
     
-    Parameter(const char* ty, const char* na);
+    AllocaInst* alloca;
+    
+    Parameter(std::string ty, std::string na);
     ~Parameter();
     
-    const char* getType();
-    const char* getName();
+    std::string getType();
+    std::string getName();
     
     virtual Value* codegen();
     
@@ -572,9 +543,9 @@ class FuncPrototype {
   public:  
     std::string type;
     std::string name;
-    std::vector<std::pair<std::string, std::string>*> args;
+    std::vector<Parameter*> args;
     
-    FuncPrototype(std::string t, std::string n, std::vector<std::pair<std::string, std::string>*> a);
+    FuncPrototype(std::string t, std::string n, std::vector<Parameter*> a);
     ~FuncPrototype();
     
     std::string getType();

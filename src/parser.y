@@ -35,7 +35,7 @@
     static std::stack<SymbolTable*> symStack;
     static std::stack<StmtList*> stmtStack;
     static std::vector<ExprNode*> args;
-    static std::vector<std::pair<std::string, std::string>*> params;
+    static std::vector<Parameter*> params;
 %} 
 
 
@@ -72,7 +72,6 @@
     IfNode* ifNode;
     ForNode* forNode;
     DoWhileNode* dwNode;
-    
     // Nodes
     ExprNode* expr;
     StmtNode* stmt;
@@ -119,7 +118,8 @@
 %type<gvDecl>   globalVarDecl
 %type<vDecl>    varDecl
 %type<fDecl>    funcDecl
-%type<decl>     declList declaration param
+%type<decl>     declList declaration
+%type<param>    param
 %type<program>  program
 %type<rtrn>     returnStmt
 
@@ -250,14 +250,14 @@ paramDelim:     paramList
 |               %empty
 ;
 
-paramList:      paramList "," param 
-|               param 
+paramList:      paramList "," param { params.push_back($3); }
+|               param {  params.push_back($1);  }
 ;
 
 param:          typeSpecifier ID {
                     std::string type($1->c_str());
                     std::string name($2->c_str());
-                    params.push_back(new std::pair<std::string, std::string>(type, name));
+                    $$ = new Parameter(type, name);
                     symStack.top()->add(new VarDeclNode($1->c_str(), $2->c_str(), nullptr));
                 } 
 ;
@@ -427,7 +427,8 @@ boolExpr:       expr boolOp expr {
                 }
 ;
 
-expr:           funcCall
+expr:           "(" expr ")" { $$ = $2; }
+|               funcCall
 |               constant 
 |               binaryOpExpr
 |               unaryOpExpr

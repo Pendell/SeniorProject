@@ -112,11 +112,9 @@ bool FuncDeclNode::equals(ASTNode* node) {
 
 Value* FuncDeclNode::codegen() {
     
-    
     FuncPrototype* fproto = getProto();
     
     if(!fproto) {
-        printf("Function missing prototype... exiting\n");
         exit(99);
     }
     
@@ -132,6 +130,7 @@ Value* FuncDeclNode::codegen() {
     }
     
     fref = f;
+    symref = SymTable;
     
     // Construct the basic block - one entry, one exit. Basic string of instructions
     BasicBlock* bb = BasicBlock::Create(TheContext, "entry", f);
@@ -143,17 +142,23 @@ Value* FuncDeclNode::codegen() {
     
     // Allocate space for parameters
     NamedValues.clear();
+    
     int idx = 0;
     for(auto& argument : f->args()) {
-        std::string type(proto->args[idx]->first);
-        
         Type* t;
-        if (type == "int") {
+        if (proto->args[idx]->getType() == "int") {
             t = Type::getInt32Ty(TheContext);
         }
+        
+        
         AllocaInst* alloca = createEntryBlockAlloca(f, argument.getName());
+        
         builder.CreateStore(&argument, alloca);
-        NamedValues[std::string(argument.getName())] = alloca;
+        
+        std::string name(argument.getName().str());
+        SymTable->dump();
+        
+        SymTable->allocations.insert(std::pair<std::string, AllocaInst*>(name, alloca));// = alloca;
         idx++;
     }
     // Iterate through statements and generate code
@@ -165,11 +170,11 @@ Value* FuncDeclNode::codegen() {
         ++it;
     }
     
+    symref = symref->getParent();
     verifyFunction(*f, &errs());
 }
 
 AllocaInst* FuncDeclNode::createEntryBlockAlloca(Function* f, const std::string& name) {
-    
     
     // Create a builder object to place things at the beginning of a function block
     IRBuilder<> tmpbuilder(&f->getEntryBlock(), f->getEntryBlock().begin());

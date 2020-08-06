@@ -158,6 +158,7 @@ const char* BinaryOpNode::getNodeType(){
 
 
 Value* BinaryOpNode::codegen(){
+    
     Value* lhsval = lhs->codegen();
     Value* rhsval = rhs->codegen();
     switch(op){
@@ -228,7 +229,9 @@ bool ReturnNode::equals(ASTNode* node){
 
 Value* ReturnNode::codegen(){
     
+    
     Value* retptr;
+    
         
     if(strcmp(value->getNodeType(), "VarDeclNode") == 0){
         VarDeclNode* value_casted = dynamic_cast<VarDeclNode*>(value);
@@ -316,14 +319,16 @@ Value* VarDeclNode::codegen() {
     
     std::string name(getName());
     
-    NamedValues[name] = builder.CreateAlloca(getLLVMType(), 0, name);
-    
+    AllocaInst* alloca = builder.CreateAlloca(getLLVMType(), 0, name);
+    // Insert a new allocation into the allocation table
+    symref->allocations[name] = alloca;
     if(value) {
-        return builder.CreateStore(value->codegen(), NamedValues[name]);
+        return builder.CreateStore(value->codegen(), symref->allocations[name]);
     } else
-        return NamedValues[name];
+        return alloca;
     
 }
+
 
 // AllocaInst* VarDeclNode::initialize() {
     // printf("VarDeclNode initialize()\n");
@@ -452,6 +457,8 @@ void ProgramNode::compile(){
 }
 
 Value* ProgramNode::codegen() {
+    
+    printf("Beginning CODE GENERATION\n");
     
     std::string name(getName());
     // We're at the top of the AST -> get a new module to build.
