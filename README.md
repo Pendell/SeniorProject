@@ -1,8 +1,11 @@
 # This README is largely outdated and will be updated in the future.
 There is still much to be done before this project is complete.
 I would still like to explore:
+
 Error Handling
+
 Expanding types
+
 More 'hands on' code generation.
 
 # Compiling and running the nodeTest
